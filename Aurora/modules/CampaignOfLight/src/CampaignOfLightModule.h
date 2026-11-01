@@ -9,7 +9,6 @@
 #include <vector>
 
 class Player;
-
 // ---------- NPC Data ----------
 struct CampaignNpc
 {
@@ -78,7 +77,7 @@ struct CampaignShop
 };
 
 // ============================================================================
-// CampaignOfLightManager — shared state (single instance)
+// CampaignOfLightManager - shared state (single instance)
 // ============================================================================
 
 class CampaignOfLightManager
@@ -95,8 +94,8 @@ public:
 
     bool Initialize();
 
-    // Загрузка выполняется лениво: скрипты CommandScript/PlayerScript
-    // регистрируются при старте ядра, до вызова точек входа модуля.
+    // Data is loaded lazily: the CommandScript/PlayerScript instances are
+    // registered while the core starts up, before the module entry points run.
     void EnsureLoaded();
     bool IsLoaded() const { return m_loaded; }
 
@@ -131,8 +130,28 @@ public:
 
     bool IsEnabled() const { return m_enabled; }
 
+    // Options from aurora_campaign_light.conf. They are not decoration: Faction
+    // and IncludeNeutral build the WHERE clause of the loader queries,
+    // RequireAlliance/MinLevelToUnlock gate StartQuest and BossRespawnMultiplier
+    // scales the respawn timer of the campaign bosses.
+    std::string const& Faction() const { return m_faction; }
+    bool IncludeNeutral() const { return m_includeNeutral; }
+    bool RequireAlliance() const { return m_requireAlliance; }
+    uint32 MinLevelToUnlock() const { return m_minLevelToUnlock; }
+    float BossRespawnMultiplier() const { return m_bossRespawnMultiplier; }
+    // Respawn time of a boss after BossRespawnMultiplier was applied.
+    uint32 RespawnTimeFor(CampaignBoss const& boss) const;
+    // WHERE fragment limiting the campaign_* queries to the configured factions.
+    std::string FactionCondition(std::string const& column) const;
+
 private:
     bool m_enabled = true;
+    std::string m_faction = "alliance";
+    bool m_includeNeutral = true;
+    bool m_requireAlliance = true;
+    uint32 m_minLevelToUnlock = 10;
+    float m_bossRespawnMultiplier = 1.0f;
+
     CampaignOfLightManager() = default;
     ~CampaignOfLightManager() = default;
 

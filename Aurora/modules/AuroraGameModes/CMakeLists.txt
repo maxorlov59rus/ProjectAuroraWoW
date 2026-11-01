@@ -1,5 +1,5 @@
 #
-# AuroraGameModes module — loadable AzerothCore module
+# AuroraGameModes module - loadable AzerothCore module
 #
 # This module is a placeholder that demonstrates the standard module
 # skeleton. Replace the source with your own game-mode logic.

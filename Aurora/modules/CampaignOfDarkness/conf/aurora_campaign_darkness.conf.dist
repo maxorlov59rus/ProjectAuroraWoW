@@ -2,8 +2,8 @@
 # CampaignOfDarkness module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_campaign_darkness.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.CampaignOfDarkness.Enabled
@@ -13,8 +13,33 @@
 Aurora.CampaignOfDarkness.Enabled = 1
 
 #    Aurora.CampaignOfDarkness.SpawnListFile
-#        Optional spawn-list file loaded at startup; empty means the campaign
-#        starts empty and is filled through the console or the database.
+#        Spawn list loaded at startup; empty means the campaign starts empty and
+#        is filled through the console. Relative paths are resolved by worldserver.
 #        Default:     ""
 
 Aurora.CampaignOfDarkness.SpawnListFile = ""
+
+#    Aurora.CampaignOfDarkness.RequireHorde
+#        Only let Horde characters start the campaign.
+#        Default:     1
+
+Aurora.CampaignOfDarkness.RequireHorde = 1
+
+#    Aurora.CampaignOfDarkness.MinLevelToUnlock
+#        Character level from which the campaign is offered on login.
+#        Default:     10
+
+Aurora.CampaignOfDarkness.MinLevelToUnlock = 10
+
+#    Aurora.CampaignOfDarkness.DefaultFaction
+#        Faction id given to campaign NPCs whose own faction is unspecified.
+#        2142 is the Horde campaign faction used by the shipped spawn data.
+#        Default:     2142
+
+Aurora.CampaignOfDarkness.DefaultFaction = 2142
+
+#    Aurora.CampaignOfDarkness.RewardGoldMultiplier
+#        Multiplier applied to the gold reward reported when a quest is completed.
+#        Default:     1.0
+
+Aurora.CampaignOfDarkness.RewardGoldMultiplier = 1.0

@@ -211,32 +211,48 @@ def step_write_configs():
         print("  WARNING: no build/bin/<config> directory yet - run cmake --build first")
         return
 
-    created = skipped = 0
+    created = updated = skipped = 0
     for cfg_dir in bins:
         conf_dir = cfg_dir / "configs"
         if not conf_dir.is_dir():
             continue
 
+        # (source, destination, overwrite)
+        #
+        # worldserver.conf/authserver.conf are kept untouched once created: the
+        # working copies carry this machine's database credentials and paths, and
+        # overwriting them with the .dist would undo that. The module configs are
+        # pure generator output, so they are refreshed on every run - otherwise a
+        # new option never reaches the server that has to read it.
         todo = []
         for app in ("worldserver", "authserver"):
             dist = conf_dir / f"{app}.conf.dist"
             if dist.is_file():
-                todo.append((dist, conf_dir / f"{app}.conf"))
+                todo.append((dist, conf_dir / f"{app}.conf", False))
 
         modules_conf = conf_dir / "modules"
         modules_conf.mkdir(exist_ok=True)
         for dist in sorted((AURORA / "modules").glob("*/conf/*.conf.dist")):
-            todo.append((dist, modules_conf / dist.name[: -len(".dist")]))
+            todo.append((dist, modules_conf / dist.name[: -len(".dist")], True))
 
-        for src, dst in todo:
-            if dst.exists():
+        for src, dst, overwrite in todo:
+            existed = dst.exists()
+            if existed and not overwrite:
                 skipped += 1
                 continue
-            write(dst, read(src))
-            created += 1
-            print(f"  created: {dst.relative_to(cfg_dir)}")
 
-    print(f"  configs: {created} created, {skipped} already present")
+            if existed and read(dst) == read(src):
+                skipped += 1
+                continue
+
+            write(dst, read(src))
+            if existed:
+                updated += 1
+            else:
+                created += 1
+            print(f"  {'updated' if existed else 'created'}: {dst.relative_to(cfg_dir)}")
+
+    print(f"  configs: {created} created, {updated} refreshed, {skipped} already current")
 
 
 def step_copy_runtime_dlls():

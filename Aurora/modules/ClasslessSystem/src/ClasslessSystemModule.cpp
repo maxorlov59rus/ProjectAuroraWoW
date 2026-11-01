@@ -1,5 +1,5 @@
 /*
- * ClasslessSystem module — implementation
+ * ClasslessSystem module - implementation
  *
  * Classless characters: the role comes from spent skill points instead of a
  * fixed AzerothCore class. The manager keeps the classless registry in memory
@@ -23,8 +23,10 @@
 #include <ChatCommandTags.h>
 #include <RBAC.h>
 
+#include <algorithm>
+
 // ============================================================================
-// ClasslessManager — implementation
+// ClasslessManager - implementation
 // ============================================================================
 
 ClasslessManager::ClasslessManager() = default;
@@ -34,7 +36,11 @@ ClasslessManager::~ClasslessManager() = default;
 bool ClasslessManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Classless.Enabled", "ClasslessSystem");
-    m_pointsPerLevel = Aurora::Settings::Get<uint32_t>("Aurora.Classless.PointsPerLevel", 2, "ClasslessSystem");
+    m_pointsPerLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.Classless.PointsPerLevel", 2, 0, 100, "ClasslessSystem");
+    m_maxLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.Classless.MaxLevel", 80, 1, 80, "ClasslessSystem");
+    // 0 is a meaningful value here: it means "no cap", so it must not be clamped away.
+    m_maxSkillPoints = Aurora::Settings::Get<uint32_t>("Aurora.Classless.MaxSkillPoints", 0, "ClasslessSystem");
+    m_defaultScript = Aurora::Settings::Get<std::string>("Aurora.Classless.DefaultScript", "", "ClasslessSystem");
 
     if (!m_enabled)
     {
@@ -42,15 +48,17 @@ bool ClasslessManager::Initialize()
         return true;
     }
 
-    LOG_INFO("ClasslessSystem", "ClasslessSystem module initialized ({} skill points per level)",
-        m_pointsPerLevel);
+    LOG_INFO("ClasslessSystem",
+        "ClasslessSystem module initialized ({} skill points per level, max level {}, skill point cap {}, default script '{}')",
+        m_pointsPerLevel, m_maxLevel, m_maxSkillPoints, m_defaultScript);
     return true;
 }
 
 bool ClasslessManager::CreateClasslessPlayer(const std::string& name,
                                              uint32_t level,
                                              uint64_t playerGuid,
-                                             const std::string& luaScript)
+                                             const std::string& luaScript,
+                                             uint64_t* outGuid)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -65,14 +73,22 @@ bool ClasslessManager::CreateClasslessPlayer(const std::string& name,
 
     ClasslessInfo info;
     info.name = name;
-    info.level = level;
-    info.skillPoints = 0;
-    info.luaScript = luaScript;
+    // A classless character above the configured ceiling would earn points the
+    // module is not meant to hand out, so the level is capped instead of refused.
+    info.level = m_maxLevel ? std::min(level, m_maxLevel) : level;
+    // A classless character starts with the points the configured rate grants for
+    // its level; leaving them at 0 made PointsPerLevel a documentation-only option.
+    info.skillPoints = info.level * m_pointsPerLevel;
+    if (m_maxSkillPoints)
+        info.skillPoints = std::min(info.skillPoints, m_maxSkillPoints);
+    info.luaScript = luaScript.empty() ? m_defaultScript : luaScript;
 
     m_players[playerGuid] = info;
+    if (outGuid)
+        *outGuid = playerGuid;
 
-    LOG_INFO("ClasslessSystem", "Registered classless character {} (GUID: {}, level {})",
-        name, playerGuid, level);
+    LOG_INFO("ClasslessSystem", "Registered classless character {} (GUID: {}, level {}, {} skill points)",
+        name, playerGuid, info.level, info.skillPoints);
     return true;
 }
 
@@ -116,6 +132,11 @@ bool ClasslessManager::SetSkillPoints(uint64_t guid, uint32_t points)
     if (it == m_players.end())
         return false;
 
+    // MaxSkillPoints is the ceiling for the whole registry, so a GM command
+    // cannot push a character past it either.
+    if (m_maxSkillPoints && points > m_maxSkillPoints)
+        points = m_maxSkillPoints;
+
     it->second.skillPoints = points;
     return true;
 }
@@ -127,7 +148,11 @@ bool ClasslessManager::AddSkillPoints(uint64_t guid, uint32_t points)
     if (it == m_players.end())
         return false;
 
-    it->second.skillPoints += points;
+    uint32_t total = it->second.skillPoints + points;
+    if (m_maxSkillPoints)
+        total = std::min(total, m_maxSkillPoints);
+
+    it->second.skillPoints = total;
     return true;
 }
 
@@ -164,7 +189,7 @@ bool IsClassless(Player* pPlayer)
 }
 
 // ============================================================================
-// CommandScript — real command registration
+// CommandScript - real command registration
 // ============================================================================
 
 class ClasslessCommandScript : public CommandScript
@@ -197,11 +222,21 @@ private:
     // ---------- .classless create <name> <level> ----------
     static bool HandleCreateClasslessCommand(ChatHandler* handler, std::string name, uint32 level)
     {
-        if (ClasslessManager::Instance().CreateClasslessPlayer(name, level))
-            handler->PSendSysMessage("Classless character '{}' (level {}) registered.", name, level);
-        else
+        ClasslessManager& mgr = ClasslessManager::Instance();
+        uint64_t guid = 0;
+        if (!mgr.CreateClasslessPlayer(name, level, 0, "", &guid))
+        {
             handler->PSendSysMessage("Cannot register classless character '{}'.", name);
+            return true;
+        }
 
+        // Report what was actually stored: the level may have been capped by
+        // MaxLevel and the points come from PointsPerLevel.
+        ClasslessInfo info{};
+        mgr.GetClasslessInfo(guid, info);
+
+        handler->PSendSysMessage("Classless character '{}' (GUID: {}, level {}, {} skill points) registered.",
+            info.name, guid, info.level, info.skillPoints);
         return true;
     }
 
@@ -277,7 +312,7 @@ extern "C"
 }
 
 // ============================================================================
-// Static instance — auto-registers via constructor
+// Static instance - auto-registers via constructor
 // ============================================================================
 
 namespace

@@ -1,5 +1,5 @@
 /**
- * AuroraLogging.cpp — central Aurora diagnostics.
+ * AuroraLogging.cpp - central Aurora diagnostics.
  *
  * Lightweight wrapper that writes to stdout. In a production build this
  * should be replaced with the AzerothCore logging framework (AzerothCore

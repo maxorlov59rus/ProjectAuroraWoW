@@ -1,5 +1,5 @@
 /*
- * AdminTools module — implementation
+ * AdminTools module - implementation
  *
  * GM helpers: admin panel, server info and an umbrella command.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// AdminToolsManager — implementation
+// AdminToolsManager - implementation
 // ============================================================================
 
 AdminToolsManager::AdminToolsManager() = default;
@@ -51,7 +51,8 @@ bool AdminToolsManager::Initialize()
         return true;
     }
 
-    LOG_INFO("AdminTools", "AdminTools module initialized");
+    LOG_INFO("AdminTools", "AdminTools module initialized (console access: {})",
+        m_requireSession ? "denied" : "allowed");
     return true;
 }
 
@@ -64,7 +65,7 @@ void AdminToolsManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("AdminTools", "Player {} logged in — admin tools available", p->GetName());
+    LOG_INFO("AdminTools", "Player {} logged in - admin tools available", p->GetName());
 }
 
 void AdminToolsManager::OnPlayerLevelUp(Player* p)
@@ -73,7 +74,6 @@ void AdminToolsManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("AdminTools", "Player {} leveled up", p->GetName());
 }
-
 
 // ============================================================================
 // CommandScript
@@ -113,9 +113,16 @@ private:
             return true;
         }
 
+        if (handler->IsConsole() && AdminToolsManager::Instance().RequireSession())
+        {
+            handler->SendSysMessage("The admin panel needs an in-game GM session.");
+            return true;
+        }
+
         handler->PSendSysMessage("Admin panel is {}.", AdminToolsManager::Instance().RequireSession() ? "restricted to in-game GMs" : "also available from the console");
         return true;
     }
+
 
     // ---------- .admin serverinfo ----------
     static bool HandleServerInfoCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -126,9 +133,16 @@ private:
             return true;
         }
 
+        if (handler->IsConsole() && AdminToolsManager::Instance().RequireSession())
+        {
+            handler->SendSysMessage("The admin commands need an in-game GM session.");
+            return true;
+        }
+
         handler->SendSysMessage("Server info command received.");
         return true;
     }
+
 
     // ---------- .admin help ----------
     static bool HandleAdminCommand(ChatHandler* handler, std::string_view /*args*/)

@@ -1,5 +1,5 @@
 /*
- * AuroraBotsModule — модуль системы активных ботов для AzerothCore (Wotlk)
+ * AuroraBotsModule - модуль системы активных ботов для AzerothCore (Wotlk)
  *
  * Предоставляет:
  *   - Команды чата и консоли: !createbot, !delbot, !listbots, !botai
@@ -66,7 +66,7 @@ public:
 
 private:
     std::map<uint64_t, BotInfo> m_bots;
-    uint64_t m_nextGuid = 1; // простая генерация GUID (в production — proper generator)
+    uint64_t m_nextGuid = 1; // простая генерация GUID (в production - proper generator)
     std::mutex m_mutex;
 };
 
@@ -96,7 +96,7 @@ bool HandleBotAiCommand(ChatHandler* handler, const std::string& args);
 //--------------------------------------------------------------------------
 
 /**
- * AuroraBot — базовый класс для управления ботом.
+ * AuroraBot - базовый класс для управления ботом.
  * Наследуется от Player (AzerothCore) и переопределяет виртуальные методы AI.
  * Lua-скрипты могут регистрировать свои хуки через этот класс.
  */
@@ -136,7 +136,7 @@ private:
 //--------------------------------------------------------------------------
 
 /**
- * LoadBotScript — загружает Lua-скрипт для бота.
+ * LoadBotScript - загружает Lua-скрипт для бота.
  * Скрипты ожидаются в папке scripts/bots/ относительно корня проекта.
  * Функции, которые скрипт должен реализовывать (как события):
  *   OnBotCreate(botGuid)
@@ -147,14 +147,14 @@ private:
 bool LoadBotScript(AuroraBot* bot);
 
 /**
- * RunBotScriptEvent — выполняет событие из Lua-скрипта бота.
+ * RunBotScriptEvent - выполняет событие из Lua-скрипта бота.
  * Вызывается из OnUpdate сервера.
  */
 void RunBotScriptEvent(AuroraBot* bot, const std::string& eventName, uint32 diff);
 
 /*extern "C"
 { // функции, которые AzerothCore ожидает видеть в модуле управления скриптами
-// (упрощенно — на основе реальных Symbols AzerothCore)
+// (упрощенно - на основе реальных Symbols AzerothCore)
 // void __declspec(dllexport) RegisterBotScripts();
 // }
 */

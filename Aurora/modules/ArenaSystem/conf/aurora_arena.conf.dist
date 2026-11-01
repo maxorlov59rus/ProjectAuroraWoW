@@ -2,8 +2,8 @@
 # ArenaSystem module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_arena.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.Arena.Enabled
@@ -13,7 +13,8 @@
 Aurora.Arena.Enabled = 1
 
 #    Aurora.Arena.RatedMinimumLevel
-#        Minimum level for a character to be reported as rated-arena eligible.
+#        Level a character needs before .arena queue reports it as rated-arena
+#        eligible. Range 1-80.
 #        Default:     80
 
 Aurora.Arena.RatedMinimumLevel = 80

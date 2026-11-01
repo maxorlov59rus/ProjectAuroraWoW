@@ -1,5 +1,5 @@
 /*
- * CampaignOfDarkness module — implementation
+ * CampaignOfDarkness module - implementation
  *
  * Horde campaign content: NPCs, dialogues, quests, bosses, shops.
  * Counterpart to CampaignOfLight (Alliance campaign).
@@ -26,11 +26,12 @@
 #include <ChatCommandTags.h>
 #include <RBAC.h>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
 // ============================================================================
-// CampaignOfDarknessManager — implementation
+// CampaignOfDarknessManager - implementation
 // ============================================================================
 
 bool CampaignOfDarknessManager::Initialize()
@@ -43,6 +44,14 @@ bool CampaignOfDarknessManager::Initialize()
         return true;
     }
 
+    m_requireHorde = Aurora::Settings::Enabled("Aurora.CampaignOfDarkness.RequireHorde", "CampaignOfDarkness", true);
+    m_minLevelToUnlock = Aurora::Settings::Bounded<uint32_t>(
+        "Aurora.CampaignOfDarkness.MinLevelToUnlock", 10, 1, 80, "CampaignOfDarkness");
+    m_defaultFaction = Aurora::Settings::Get<uint32_t>(
+        "Aurora.CampaignOfDarkness.DefaultFaction", 2142, "CampaignOfDarkness");
+    m_rewardGoldMultiplier = Aurora::Settings::Bounded<float>(
+        "Aurora.CampaignOfDarkness.RewardGoldMultiplier", 1.0f, 0.0f, 100.0f, "CampaignOfDarkness");
+
     // An empty path is the normal case: the campaign is then filled through
     // the Add*/Load* API instead of a file shipped with the server.
     std::string spawnList = Aurora::Settings::Get<std::string>(
@@ -54,8 +63,16 @@ bool CampaignOfDarknessManager::Initialize()
             LOG_ERROR("CampaignOfDarkness", "Spawn list '{}' could not be loaded", spawnList);
     }
 
-    LOG_INFO("CampaignOfDarkness", "Campaign of Darkness module initialized");
+    LOG_INFO("CampaignOfDarkness",
+        "Campaign of Darkness module initialized ({} from level {}, faction {}, gold reward x{})",
+        m_requireHorde ? "horde only" : "any faction", m_minLevelToUnlock, m_defaultFaction,
+        m_rewardGoldMultiplier);
     return true;
+}
+
+uint32_t CampaignOfDarknessManager::RewardGoldFor(const CampaignQuest& quest) const
+{
+    return static_cast<uint32_t>(static_cast<double>(quest.rewardGold) * m_rewardGoldMultiplier);
 }
 
 void CampaignOfDarknessManager::OnPlayerLogin(Player* p)
@@ -64,7 +81,7 @@ void CampaignOfDarknessManager::OnPlayerLogin(Player* p)
         return;
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    LOG_INFO("CampaignOfDarkness", "Player {} logged in — {} campaign NPCs, {} quests available",
+    LOG_INFO("CampaignOfDarkness", "Player {} logged in - {} campaign NPCs, {} quests available",
         p->GetName(), static_cast<uint32>(m_npcs.size()), static_cast<uint32>(m_quests.size()));
 }
 
@@ -81,8 +98,16 @@ void CampaignOfDarknessManager::OnPlayerLevelUp(Player* p)
 bool CampaignOfDarknessManager::AddNpc(const CampaignNpc& npc)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_npcs[npc.entry] = npc;
-    LOG_INFO("CampaignOfDarkness", "Added NPC {} (entry {})", npc.name, npc.entry);
+
+    CampaignNpc stored = npc;
+    // Spawn lists and scripts routinely leave the faction empty; the campaign
+    // NPCs then have to share one configured faction instead of being hostile
+    // to both factions by accident.
+    if (stored.faction == 0)
+        stored.faction = m_defaultFaction;
+
+    m_npcs[stored.entry] = stored;
+    LOG_INFO("CampaignOfDarkness", "Added NPC {} (entry {})", stored.name, stored.entry);
     return true;
 }
 
@@ -146,6 +171,21 @@ bool CampaignOfDarknessManager::StartQuest(Player* p, uint32_t questId)
     if (!p)
         return false;
 
+    // The campaign is a horde chain by configuration; the check lives here rather
+    // than in the command handler so every entry point is covered.
+    if (m_requireHorde && p->GetTeamId() != TEAM_HORDE)
+    {
+        ChatHandler(p->GetSession()).SendSysMessage("The Campaign of Darkness is a Horde campaign.");
+        return false;
+    }
+
+    if (p->GetLevel() < m_minLevelToUnlock)
+    {
+        ChatHandler(p->GetSession()).PSendSysMessage("The Campaign of Darkness unlocks at level {}.",
+            m_minLevelToUnlock);
+        return false;
+    }
+
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_quests.find(questId);
     if (it == m_quests.end())
@@ -163,12 +203,23 @@ bool CampaignOfDarknessManager::CompleteQuest(Player* p, uint32_t questId)
     if (!p)
         return false;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_quests.find(questId);
-    if (it == m_quests.end())
-        return false;
+    uint32 rewardGold = 0;
+    std::string title;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_quests.find(questId);
+        if (it == m_quests.end())
+            return false;
 
-    LOG_INFO("CampaignOfDarkness", "Player {} completed quest {} (ID: {})", p->GetName(), it->second.title, questId);
+        title = it->second.title;
+        rewardGold = RewardGoldFor(it->second);
+
+        LOG_INFO("CampaignOfDarkness", "Player {} completed quest {} (ID: {})", p->GetName(), it->second.title, questId);
+    }
+
+    // RewardGoldMultiplier is only visible to players if the payout it produced
+    // is what they are told about.
+    ChatHandler(p->GetSession()).PSendSysMessage("Quest '{}' completed, reward: {} gold.", title, rewardGold);
 
     // TODO: grant the reward (gold/xp) once quests live in the world database.
     return true;
@@ -340,7 +391,7 @@ bool CampaignOfDarknessManager::SaveSpawnList(const std::string& filename)
 }
 
 // ============================================================================
-// CommandScript — real command registration
+// CommandScript - real command registration
 // ============================================================================
 
 class CampaignOfDarknessCommandScript : public CommandScript
@@ -376,10 +427,29 @@ private:
     // ---------- .cod start ----------
     static bool HandleStartCampaignCommand(ChatHandler* handler, std::string_view /*args*/)
     {
+        CampaignOfDarknessManager& mgr = CampaignOfDarknessManager::Instance();
         Player* player = handler->GetPlayer();
-        if (player)
-            LOG_INFO("CampaignOfDarkness", "Player {} started Campaign of Darkness", player->GetName());
 
+        if (!player)
+        {
+            handler->SendSysMessage("The campaign commands need an in-game character.");
+            return true;
+        }
+
+        if (mgr.RequireHorde() && player->GetTeamId() != TEAM_HORDE)
+        {
+            handler->SendSysMessage("The Campaign of Darkness is a Horde campaign.");
+            return true;
+        }
+
+        if (player->GetLevel() < mgr.MinLevelToUnlock())
+        {
+            handler->PSendSysMessage("The Campaign of Darkness unlocks at level {} (you are {}).",
+                mgr.MinLevelToUnlock(), player->GetLevel());
+            return true;
+        }
+
+        LOG_INFO("CampaignOfDarkness", "Player {} started Campaign of Darkness", player->GetName());
         handler->SendSysMessage("Campaign of Darkness started.");
         return true;
     }
@@ -482,18 +552,22 @@ private:
     // ---------- .cod info ----------
     static bool HandleCampaignInfoCommand(ChatHandler* handler, std::string_view /*args*/)
     {
-        auto npcs = CampaignOfDarknessManager::Instance().GetNpcs();
-        auto bosses = CampaignOfDarknessManager::Instance().GetBosses();
+        CampaignOfDarknessManager& mgr = CampaignOfDarknessManager::Instance();
+        auto npcs = mgr.GetNpcs();
+        auto bosses = mgr.GetBosses();
 
         handler->PSendSysMessage("Campaign of Darkness: NPCs={}, Bosses={}",
             static_cast<uint32>(npcs.size()), static_cast<uint32>(bosses.size()));
+        handler->PSendSysMessage("Access: {} from level {}, NPC faction {}, gold reward x{}",
+            mgr.RequireHorde() ? "Horde only" : "any faction", mgr.MinLevelToUnlock(),
+            mgr.DefaultFaction(), mgr.RewardGoldMultiplier());
 
         return true;
     }
 };
 
 // ============================================================================
-// PlayerScript — login / level-up hooks
+// PlayerScript - login / level-up hooks
 // ============================================================================
 
 class CampaignOfDarknessPlayerScript : public PlayerScript
@@ -531,7 +605,7 @@ extern "C"
 }
 
 // ============================================================================
-// Static instances — auto-register via constructors
+// Static instances - auto-register via constructors
 // ============================================================================
 
 namespace

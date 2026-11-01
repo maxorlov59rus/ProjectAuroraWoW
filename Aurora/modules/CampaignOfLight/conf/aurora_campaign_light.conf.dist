@@ -2,8 +2,8 @@
 # CampaignOfLight module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_campaign_light.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.CampaignOfLight.Enabled
@@ -11,3 +11,40 @@
 #        Default:     1
 
 Aurora.CampaignOfLight.Enabled = 1
+
+#    Aurora.CampaignOfLight.Faction
+#        Faction value the campaign rows are selected by in the database tables.
+#        Default:     "alliance"
+
+Aurora.CampaignOfLight.Faction = "alliance"
+
+#    Aurora.CampaignOfLight.IncludeNeutral
+#        Also load rows whose faction is "neutral" alongside the ones above.
+#        Default:     1
+
+Aurora.CampaignOfLight.IncludeNeutral = 1
+
+#    Aurora.CampaignOfLight.PreloadOnStartup
+#        Read the campaign tables at startup instead of on the first command.
+#        Useful when the campaign must be available to players right away.
+#        Default:     0
+
+Aurora.CampaignOfLight.PreloadOnStartup = 0
+
+#    Aurora.CampaignOfLight.RequireAlliance
+#        Only let Alliance characters start the campaign.
+#        Default:     1
+
+Aurora.CampaignOfLight.RequireAlliance = 1
+
+#    Aurora.CampaignOfLight.MinLevelToUnlock
+#        Character level from which the campaign is offered on login.
+#        Default:     10
+
+Aurora.CampaignOfLight.MinLevelToUnlock = 10
+
+#    Aurora.CampaignOfLight.BossRespawnMultiplier
+#        Multiplier applied to the respawn time stored for a campaign boss.
+#        Default:     1.0
+
+Aurora.CampaignOfLight.BossRespawnMultiplier = 1.0

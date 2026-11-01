@@ -2,8 +2,8 @@
 # PetSystem module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_pets.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.Pets.Enabled
@@ -13,7 +13,13 @@
 Aurora.Pets.Enabled = 1
 
 #    Aurora.Pets.DefaultLevel
-#        Level given to a pet spawned without an explicit level.
+#        Level given to a pet spawned without an explicit one.
 #        Default:     1
 
 Aurora.Pets.DefaultLevel = 1
+
+#    Aurora.Pets.MaxLevel
+#        Highest level that can be given to a pet by .pet level or .pet spawn.
+#        Default:     80
+
+Aurora.Pets.MaxLevel = 80

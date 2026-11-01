@@ -1,5 +1,5 @@
 /*
- * LootSystem module — implementation
+ * LootSystem module - implementation
  *
  * Loot tuning: drop rates, loot inspection and reset.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// LootSystemManager — implementation
+// LootSystemManager - implementation
 // ============================================================================
 
 LootSystemManager::LootSystemManager() = default;
@@ -43,7 +43,8 @@ LootSystemManager& LootSystemManager::Instance()
 bool LootSystemManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Loot.Enabled", "LootSystem");
-    m_dropRate = Aurora::Settings::Get<float>("Aurora.Loot.DropRate", 1.0f, "LootSystem");
+    m_maxDropRate = Aurora::Settings::Get<float>("Aurora.Loot.MaxDropRate", 10.0f, "LootSystem");
+    m_dropRate = Aurora::Settings::Bounded<float>("Aurora.Loot.DropRate", 1.0f, 0.0f, m_maxDropRate, "LootSystem");
 
     if (!m_enabled)
     {
@@ -51,7 +52,7 @@ bool LootSystemManager::Initialize()
         return true;
     }
 
-    LOG_INFO("LootSystem", "LootSystem module initialized");
+    LOG_INFO("LootSystem", "LootSystem module initialized (drop rate {}, max {})", m_dropRate, m_maxDropRate);
     return true;
 }
 
@@ -64,7 +65,7 @@ void LootSystemManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("LootSystem", "Player {} logged in — loot system available", p->GetName());
+    LOG_INFO("LootSystem", "Player {} logged in - loot system available", p->GetName());
 }
 
 void LootSystemManager::OnPlayerLevelUp(Player* p)
@@ -74,6 +75,15 @@ void LootSystemManager::OnPlayerLevelUp(Player* p)
     LOG_INFO("LootSystem", "Player {} leveled up", p->GetName());
 }
 
+bool LootSystemManager::SetDropRate(float rate)
+{
+    if (rate < 0.0f || rate > m_maxDropRate)
+        return false;
+
+    m_dropRate = rate;
+    LOG_INFO("LootSystem", "Drop rate changed to {}", rate);
+    return true;
+}
 
 // ============================================================================
 // CommandScript
@@ -113,9 +123,17 @@ private:
             return true;
         }
 
-        handler->PSendSysMessage("Drop rate set to {}.", rate);
+        if (!LootSystemManager::Instance().SetDropRate(rate))
+        {
+            handler->PSendSysMessage("Drop rate must be between 0 and {}.",
+                LootSystemManager::Instance().MaxDropRate());
+            return true;
+        }
+
+        handler->PSendSysMessage("Drop rate set to {}.", LootSystemManager::Instance().DropRate());
         return true;
     }
+
 
     // ---------- .loot info ----------
     static bool HandleLootInfoCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -126,9 +144,10 @@ private:
             return true;
         }
 
-        handler->PSendSysMessage("Configured drop rate: {}.", LootSystemManager::Instance().DropRate());
+        handler->PSendSysMessage("Current drop rate: {} (maximum {}).", LootSystemManager::Instance().DropRate(), LootSystemManager::Instance().MaxDropRate());
         return true;
     }
+
 
     // ---------- .loot reset ----------
     static bool HandleResetLootCommand(ChatHandler* handler, std::string_view /*args*/)

@@ -1,5 +1,5 @@
 /*
- * GuildEnhancements module — implementation
+ * GuildEnhancements module - implementation
  *
  * Guild improvements: bank, ranks and extended info.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// GuildEnhancementsManager — implementation
+// GuildEnhancementsManager - implementation
 // ============================================================================
 
 GuildEnhancementsManager::GuildEnhancementsManager() = default;
@@ -51,7 +51,7 @@ bool GuildEnhancementsManager::Initialize()
         return true;
     }
 
-    LOG_INFO("GuildEnhancements", "GuildEnhancements module initialized");
+    LOG_INFO("GuildEnhancements", "GuildEnhancements module initialized (bank tab {} copper)", m_bankTabCost);
     return true;
 }
 
@@ -64,7 +64,7 @@ void GuildEnhancementsManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("GuildEnhancements", "Player {} logged in — guild enhancements available", p->GetName());
+    LOG_INFO("GuildEnhancements", "Player {} logged in - guild enhancements available", p->GetName());
 }
 
 void GuildEnhancementsManager::OnPlayerLevelUp(Player* p)
@@ -73,7 +73,6 @@ void GuildEnhancementsManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("GuildEnhancements", "Player {} leveled up", p->GetName());
 }
-
 
 // ============================================================================
 // CommandScript
@@ -113,9 +112,12 @@ private:
             return true;
         }
 
-        handler->PSendSysMessage("Guild bank command received (a tab costs {}).", GuildEnhancementsManager::Instance().BankTabCost());
+        uint32 const cost = GuildEnhancementsManager::Instance().BankTabCost();
+
+        handler->PSendSysMessage("A new guild bank tab costs {} gold, {} silver, {} copper.", cost / 10000, (cost / 100) % 100, cost % 100);
         return true;
     }
+
 
     // ---------- .guildx rank ----------
     static bool HandleGuildRankCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -129,6 +131,7 @@ private:
         handler->SendSysMessage("Guild rank command received.");
         return true;
     }
+
 
     // ---------- .guildx info ----------
     static bool HandleGuildInfoCommand(ChatHandler* handler, std::string_view /*args*/)

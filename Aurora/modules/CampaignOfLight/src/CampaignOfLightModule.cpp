@@ -1,5 +1,5 @@
 /*
- * CampaignOfLight module — implementation
+ * CampaignOfLight module - implementation
  *
  * Alliance campaign content: NPCs, dialogues, quests, bosses, shops.
  * Counterpart to CampaignOfDarkness (Horde campaign).
@@ -28,8 +28,11 @@
 #include <Map.h>
 #include <Creature.h>
 
+#include <algorithm>
+#include <cctype>
+
 // ============================================================================
-// CampaignOfLightManager — implementation
+// CampaignOfLightManager - implementation
 // ============================================================================
 
 bool CampaignOfLightManager::Initialize()
@@ -42,8 +45,51 @@ bool CampaignOfLightManager::Initialize()
         return true;
     }
 
-    LOG_INFO("CampaignOfLight", "Campaign of Light module initialized");
+    m_faction = Aurora::Settings::Get<std::string>("Aurora.CampaignOfLight.Faction", "alliance", "CampaignOfLight");
+    m_includeNeutral = Aurora::Settings::Enabled("Aurora.CampaignOfLight.IncludeNeutral", "CampaignOfLight", true);
+    m_requireAlliance = Aurora::Settings::Enabled("Aurora.CampaignOfLight.RequireAlliance", "CampaignOfLight", true);
+    m_minLevelToUnlock = Aurora::Settings::Bounded<uint32>(
+        "Aurora.CampaignOfLight.MinLevelToUnlock", 10, 1, 80, "CampaignOfLight");
+    m_bossRespawnMultiplier = Aurora::Settings::Bounded<float>(
+        "Aurora.CampaignOfLight.BossRespawnMultiplier", 1.0f, 0.0f, 100.0f, "CampaignOfLight");
+
+    // PreloadOnStartup is the one option that changes *when* work happens: with
+    // it off the campaign tables are read on the first command instead.
+    if (Aurora::Settings::Enabled("Aurora.CampaignOfLight.PreloadOnStartup", "CampaignOfLight", false))
+        EnsureLoaded();
+
+    LOG_INFO("CampaignOfLight",
+        "Campaign of Light module initialized (faction '{}', neutral NPCs {}: {}, from level {}, boss respawn x{})",
+        m_faction, m_includeNeutral ? "included" : "excluded",
+        m_requireAlliance ? "alliance only" : "any faction", m_minLevelToUnlock, m_bossRespawnMultiplier);
     return true;
+}
+
+std::string CampaignOfLightManager::FactionCondition(std::string const& column) const
+{
+    // The value comes from the config, not from user input; it is still quoted
+    // and restricted to the identifiers the campaign_* tables use.
+    auto isSafeName = [](std::string const& text)
+    {
+        return !text.empty() && std::all_of(text.begin(), text.end(), [](char c)
+        {
+            return std::isalnum(static_cast<unsigned char>(c)) != 0;
+        });
+    };
+
+    if (!isSafeName(m_faction))
+        return "0";
+
+    std::string condition = column + " = '" + m_faction + "'";
+    if (m_includeNeutral)
+        condition += " OR " + column + " = 'neutral'";
+
+    return "(" + condition + ")";
+}
+
+uint32 CampaignOfLightManager::RespawnTimeFor(CampaignBoss const& boss) const
+{
+    return static_cast<uint32>(static_cast<double>(boss.respawnTime) * m_bossRespawnMultiplier);
 }
 
 void CampaignOfLightManager::EnsureLoaded()
@@ -53,7 +99,7 @@ void CampaignOfLightManager::EnsureLoaded()
 
 void CampaignOfLightManager::LoadAllFromDb()
 {
-    LOG_INFO("CampaignOfLight", "Loading Campaign of Light data from database…");
+    LOG_INFO("CampaignOfLight", "Loading Campaign of Light data from database...");
 
     LoadNpcsFromDb();
     LoadQuestsFromDb();
@@ -72,10 +118,12 @@ void CampaignOfLightManager::LoadAllFromDb()
 
 void CampaignOfLightManager::LoadNpcsFromDb()
 {
-    auto result = WorldDatabase.Query(
+    std::string sql =
         "SELECT entry, name, title, level, health, float_x, float_y, float_z, "
         "map_id, dialogues_script, is_boss, is_vendor "
-        "FROM campaign_npcs WHERE faction = 'alliance' OR faction = 'neutral'");
+        "FROM campaign_npcs WHERE " + FactionCondition("faction");
+
+    auto result = WorldDatabase.Query(sql);
 
     if (!result)
         return;
@@ -172,10 +220,12 @@ bool CampaignOfLightManager::ShowDialogue(Player* player, uint32 npcEntry, uint3
 
 void CampaignOfLightManager::LoadQuestsFromDb()
 {
-    auto result = WorldDatabase.Query(
+    std::string sql =
         "SELECT quest_id, title, description, level, reward_gold, reward_xp, "
         "reward_items, lua_script, start_npc_entry, end_npc_entry "
-        "FROM campaign_quests WHERE faction = 'alliance'");
+        "FROM campaign_quests WHERE " + FactionCondition("faction");
+
+    auto result = WorldDatabase.Query(sql);
 
     if (!result)
         return;
@@ -214,6 +264,24 @@ bool CampaignOfLightManager::AddQuest(CampaignQuest const& quest)
 
 bool CampaignOfLightManager::StartQuest(Player* player, uint32 questId)
 {
+    if (!player)
+        return false;
+
+    // RequireAlliance/MinLevelToUnlock gate the campaign here so that every
+    // caller (command or script) is checked the same way.
+    if (m_requireAlliance && player->GetTeamId() != TEAM_ALLIANCE)
+    {
+        ChatHandler(player->GetSession()).SendSysMessage("The Campaign of Light is an Alliance campaign.");
+        return false;
+    }
+
+    if (player->GetLevel() < m_minLevelToUnlock)
+    {
+        ChatHandler(player->GetSession()).PSendSysMessage("The Campaign of Light unlocks at level {}.",
+            m_minLevelToUnlock);
+        return false;
+    }
+
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_quests.find(questId);
     if (it == m_quests.end())
@@ -257,10 +325,12 @@ CampaignQuest const* CampaignOfLightManager::GetQuest(uint32 questId) const
 
 void CampaignOfLightManager::LoadBossesFromDb()
 {
-    auto result = WorldDatabase.Query(
+    std::string sql =
         "SELECT entry, name, title, level, health, mana, abilities, spawn_script, "
         "float_x, float_y, float_z, map_id, respawn_time "
-        "FROM campaign_bosses WHERE faction = 'alliance' OR faction = 'neutral'");
+        "FROM campaign_bosses WHERE " + FactionCondition("faction");
+
+    auto result = WorldDatabase.Query(sql);
 
     if (!result)
         return;
@@ -300,8 +370,10 @@ bool CampaignOfLightManager::SpawnBoss(uint32 bossEntry, float x, float y, float
         return false;
 
     CampaignBoss const& boss = it->second;
-    LOG_INFO("CampaignOfLight", "Spawning boss {} (entry {}) at ({}, {}, {}) map {}",
-        boss.name, boss.entry, x, y, z, mapId);
+    // BossRespawnMultiplier is what the respawn timer will actually be, so the
+    // log line reports the scaled value rather than the raw database one.
+    LOG_INFO("CampaignOfLight", "Spawning boss {} (entry {}) at ({}, {}, {}) map {}, respawn {} s",
+        boss.name, boss.entry, x, y, z, mapId, RespawnTimeFor(boss));
 
     // TODO: Actually spawn boss creature
     // Map* map = ObjectAccessor::FindMap(mapId);
@@ -329,9 +401,11 @@ std::vector<CampaignBoss> CampaignOfLightManager::GetBosses() const
 
 void CampaignOfLightManager::LoadShopsFromDb()
 {
-    auto result = WorldDatabase.Query(
+    std::string sql =
         "SELECT vendor_entry, name, items, lua_script, discount_horde, discount_alliance "
-        "FROM campaign_shops WHERE faction = 'alliance' OR faction = 'neutral'");
+        "FROM campaign_shops WHERE " + FactionCondition("faction");
+
+    auto result = WorldDatabase.Query(sql);
 
     if (!result)
         return;
@@ -380,7 +454,7 @@ bool CampaignOfLightManager::ShowShop(Player* player, uint32 vendorEntry)
 }
 
 // ============================================================================
-// CommandScript — real command registration
+// CommandScript - real command registration
 // ============================================================================
 
 class CampaignOfLightCommandScript : public CommandScript
@@ -416,10 +490,29 @@ private:
     // ---------- .cnp start ----------
     static bool HandleStartCampaignCommand(ChatHandler* handler, std::string_view /*args*/)
     {
+        CampaignOfLightManager& mgr = CampaignOfLightManager::Instance();
         Player* player = handler->GetPlayer();
-        if (player)
-            LOG_INFO("CampaignOfLight", "Player {} started Campaign of Light", player->GetName());
 
+        if (!player)
+        {
+            handler->SendSysMessage("The campaign commands need an in-game character.");
+            return true;
+        }
+
+        if (mgr.RequireAlliance() && player->GetTeamId() != TEAM_ALLIANCE)
+        {
+            handler->SendSysMessage("The Campaign of Light is an Alliance campaign.");
+            return true;
+        }
+
+        if (player->GetLevel() < mgr.MinLevelToUnlock())
+        {
+            handler->PSendSysMessage("The Campaign of Light unlocks at level {} (you are {}).",
+                mgr.MinLevelToUnlock(), player->GetLevel());
+            return true;
+        }
+
+        LOG_INFO("CampaignOfLight", "Player {} started Campaign of Light", player->GetName());
         handler->SendSysMessage("Campaign of Light started.");
         return true;
     }
@@ -555,13 +648,16 @@ private:
 
         handler->PSendSysMessage("Campaign of Light: NPCs={}, Bosses={}",
             static_cast<uint32>(npcs.size()), static_cast<uint32>(bosses.size()));
+        handler->PSendSysMessage("Access: {} from level {}, faction '{}' (neutral {}), boss respawn x{}",
+            mgr.RequireAlliance() ? "Alliance only" : "any faction", mgr.MinLevelToUnlock(),
+            mgr.Faction(), mgr.IncludeNeutral() ? "included" : "excluded", mgr.BossRespawnMultiplier());
 
         return true;
     }
 };
 
 // ============================================================================
-// PlayerScript — login / level-up hooks
+// PlayerScript - login / level-up hooks
 // ============================================================================
 
 class CampaignOfLightPlayerScript : public PlayerScript
@@ -576,7 +672,7 @@ public:
 
         CampaignOfLightManager::Instance().EnsureLoaded();
 
-        LOG_INFO("CampaignOfLight", "Player {} (guid {}) logged in — Campaign of Light available",
+        LOG_INFO("CampaignOfLight", "Player {} (guid {}) logged in - Campaign of Light available",
             player->GetName(), player->GetGUID().GetRawValue());
 
         // TODO: Check if player has already started this campaign
@@ -610,7 +706,7 @@ extern "C"
 }
 
 // ============================================================================
-// Static instances — auto-register via constructors
+// Static instances - auto-register via constructors
 // ============================================================================
 
 namespace

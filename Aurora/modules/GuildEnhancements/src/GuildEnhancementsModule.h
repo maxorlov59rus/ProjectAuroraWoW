@@ -6,7 +6,7 @@
 #include <mutex>
 #include <AuroraPCH.h>
 
-class WorldSession; class Player; class ChatHandler; class Guild;
+class WorldSession; class Player; class ChatHandler;
 
 class GuildEnhancementsManager {
 public:

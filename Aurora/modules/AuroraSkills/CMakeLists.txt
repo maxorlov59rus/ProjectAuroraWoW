@@ -1,5 +1,5 @@
 #
-# AuroraSkills module — loadable AzerothCore module
+# AuroraSkills module - loadable AzerothCore module
 #
 # This module is a placeholder that demonstrates the standard module
 # skeleton. Replace the source with your own skills logic.

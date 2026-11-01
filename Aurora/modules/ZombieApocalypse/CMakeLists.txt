@@ -1,5 +1,5 @@
 #
-# ZombieApocalypse module — loadable AzerothCore module
+# ZombieApocalypse module - loadable AzerothCore module
 #
 # This module introduces a zombie apocalypse event system where zombies
 # spawn in random locations across the game world. Players can fight
@@ -17,7 +17,7 @@ add_library(ZombieApocalypse MODULE ${ZOMBIEAPP_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(ZombieApocalypse PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

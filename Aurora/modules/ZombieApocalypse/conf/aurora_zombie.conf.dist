@@ -2,8 +2,8 @@
 # ZombieApocalypse module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_zombie.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.ZombieApocalypse.Enabled
@@ -13,13 +13,32 @@
 Aurora.ZombieApocalypse.Enabled = 1
 
 #    Aurora.ZombieApocalypse.DurationMinutes
-#        Default event length for .zombie start.
+#        Event length used by .zombie start without an explicit one.
 #        Default:     30
 
 Aurora.ZombieApocalypse.DurationMinutes = 30
 
+#    Aurora.ZombieApocalypse.MaxDurationMinutes
+#        Upper bound for the event length, from the config and from the command.
+#        Default:     1440
+
+Aurora.ZombieApocalypse.MaxDurationMinutes = 1440
+
 #    Aurora.ZombieApocalypse.MaxZombies
-#        Default living-zombie cap for the event.
+#        Living zombies the event keeps at most, and the default for .zombie start.
 #        Default:     50
 
 Aurora.ZombieApocalypse.MaxZombies = 50
+
+#    Aurora.ZombieApocalypse.MaxZombieLevel
+#        Highest level a randomly spawned zombie can get. Level is drawn in
+#        [1, MaxZombieLevel].
+#        Default:     80
+
+Aurora.ZombieApocalypse.MaxZombieLevel = 80
+
+#    Aurora.ZombieApocalypse.HealthPerLevel
+#        Health a zombie gets for each of its levels.
+#        Default:     10
+
+Aurora.ZombieApocalypse.HealthPerLevel = 10

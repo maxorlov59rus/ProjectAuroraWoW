@@ -1,5 +1,5 @@
 /*
- * PetSystem module — implementation
+ * PetSystem module - implementation
  *
  * Custom pet handling: spawning, removal and stat overrides.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// PetSystemManager — implementation
+// PetSystemManager - implementation
 // ============================================================================
 
 PetSystemManager::PetSystemManager() = default;
@@ -43,7 +43,8 @@ PetSystemManager& PetSystemManager::Instance()
 bool PetSystemManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Pets.Enabled", "PetSystem");
-    m_defaultPetLevel = Aurora::Settings::Get<uint32_t>("Aurora.Pets.DefaultLevel", 1, "PetSystem");
+    m_maxPetLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.Pets.MaxLevel", 80, 1, 80, "PetSystem");
+    m_defaultPetLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.Pets.DefaultLevel", 1, 1, m_maxPetLevel, "PetSystem");
 
     if (!m_enabled)
     {
@@ -51,7 +52,8 @@ bool PetSystemManager::Initialize()
         return true;
     }
 
-    LOG_INFO("PetSystem", "PetSystem module initialized");
+    LOG_INFO("PetSystem", "PetSystem module initialized (default level {}, max {})",
+        m_defaultPetLevel, m_maxPetLevel);
     return true;
 }
 
@@ -64,7 +66,7 @@ void PetSystemManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("PetSystem", "Player {} logged in — pet system available", p->GetName());
+    LOG_INFO("PetSystem", "Player {} logged in - pet system available", p->GetName());
 }
 
 void PetSystemManager::OnPlayerLevelUp(Player* p)
@@ -73,7 +75,6 @@ void PetSystemManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("PetSystem", "Player {} leveled up", p->GetName());
 }
-
 
 void PetSystemManager::SpawnPet(Player* p, uint32_t entry)
 {
@@ -148,6 +149,7 @@ private:
         return true;
     }
 
+
     // ---------- .pet remove ----------
     static bool HandleRemovePetCommand(ChatHandler* handler, std::string_view /*args*/)
     {
@@ -161,6 +163,7 @@ private:
         return true;
     }
 
+
     // ---------- .pet level ----------
     static bool HandleSetPetLevelCommand(ChatHandler* handler, uint32 level)
     {
@@ -170,9 +173,17 @@ private:
             return true;
         }
 
+        if (!level || level > PetSystemManager::Instance().MaxPetLevel())
+        {
+            handler->PSendSysMessage("Pet level must be between 1 and {}.",
+                PetSystemManager::Instance().MaxPetLevel());
+            return true;
+        }
+
         handler->PSendSysMessage("Pet level set to {}.", level);
         return true;
     }
+
 
     // ---------- .pet stats ----------
     static bool HandleSetPetStatsCommand(ChatHandler* handler, uint32 health, uint32 mana)

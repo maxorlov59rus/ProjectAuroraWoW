@@ -2,8 +2,8 @@
 # Economy module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_economy.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.Economy.Enabled
@@ -13,7 +13,8 @@
 Aurora.Economy.Enabled = 1
 
 #    Aurora.Economy.AuctionDepositPercent
-#        Percent of the bid kept as an auction deposit by the Aurora auction helper.
+#        Percent of a bid that the Aurora auction helper reports as deposit.
+#        Range 0-100.
 #        Default:     5
 
 Aurora.Economy.AuctionDepositPercent = 5

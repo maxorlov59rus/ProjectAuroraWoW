@@ -2,8 +2,8 @@
 # GuildEnhancements module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_guild.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.GuildEnhancements.Enabled
@@ -13,7 +13,8 @@
 Aurora.GuildEnhancements.Enabled = 1
 
 #    Aurora.GuildEnhancements.BankTabCost
-#        Copper price charged by the Aurora guild-bank helper for a new tab.
+#        Price in copper that the Aurora guild-bank helper charges for a new tab
+#        (100000 = 10 gold).
 #        Default:     100000
 
 Aurora.GuildEnhancements.BankTabCost = 100000

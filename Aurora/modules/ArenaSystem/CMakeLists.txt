@@ -1,5 +1,5 @@
 #
-# ArenaSystem module — loadable AzerothCore module
+# ArenaSystem module - loadable AzerothCore module
 #
 # This module provides PvP arena enhancements and ranking systems.
 #
@@ -12,7 +12,7 @@ add_library(ArenaSystem MODULE ${ARENASYSTEM_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(ArenaSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

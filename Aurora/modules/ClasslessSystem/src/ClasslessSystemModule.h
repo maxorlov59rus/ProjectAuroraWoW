@@ -1,15 +1,14 @@
 /*
- * ClasslessSystemModule — модуль "безклассовой" системы для AzerothCore (Wotlk)
+ * ClasslessSystemModule - "classless" system for AzerothCore (WotLK)
  *
- * Суть: игроки не привязаны кFixed-класу (WARRIOR, MAGE и т.д.).
- * Их роль определяется распределением очков навыков (skill points),
- * а также настройками из конфига и Lua-скриптов.
+ * Idea: players are not bound to a fixed class (WARRIOR, MAGE, ...). Their
+ * role comes from distributed skill points, module settings and Lua scripts.
  *
- * Предоставляет:
- *   - Команда .classless <name> — создать безклассового игрока/бота
- *   - Команда .setskills <points> — выдать очки скиллов
- *   - Интеграция с AuroraSkills (усь-used skill system)
- *   - Хуки для модификации AI (OnUpdate, OnSpellCast) без класса
+ * Provides:
+ *   - .classless <name>  - register a classless character/bot
+ *   - .setskills <points> - grant skill points
+ *   - integration with AuroraSkills (the shared skill system)
+ *   - hooks to modify AI (OnUpdate, OnSpellCast) without a class
  */
 
 #pragma once
@@ -18,6 +17,7 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <vector>
 
 #include <AuroraPCH.h>
 
@@ -52,11 +52,14 @@ public:
     }
 
     // Create a new classless player. Guid can be provided or auto-generated.
-    // If playerGuid == 0 a new player is created in the world.
+    // If playerGuid == 0 a new player is created in the world. When outGuid is
+    // given it receives the guid the character was registered under, which lets
+    // callers report the stored (capped) values instead of the requested ones.
     bool CreateClasslessPlayer(const std::string& name,
                               uint32_t level,
                               uint64_t playerGuid = 0,
-                              const std::string& luaScript = "");
+                              const std::string& luaScript = "",
+                              uint64_t* outGuid = nullptr);
 
     // Delete a classless player by GUID.
     bool DeleteClasslessPlayer(uint64_t guid);
@@ -76,10 +79,17 @@ public:
     bool Initialize();
     bool IsEnabled() const { return m_enabled; }
     uint32_t PointsPerLevel() const { return m_pointsPerLevel; }
+    uint32_t MaxLevel() const { return m_maxLevel; }
+    // 0 means "no cap"; otherwise the ceiling for accumulated skill points.
+    uint32_t MaxSkillPoints() const { return m_maxSkillPoints; }
+    std::string const& DefaultScript() const { return m_defaultScript; }
 
 private:
     bool m_enabled = true;
     uint32_t m_pointsPerLevel = 2;
+    uint32_t m_maxLevel = 80;
+    uint32_t m_maxSkillPoints = 0;
+    std::string m_defaultScript;
 
     std::map<uint64_t, ClasslessInfo> m_players;
     uint64_t m_nextGuid = 1;

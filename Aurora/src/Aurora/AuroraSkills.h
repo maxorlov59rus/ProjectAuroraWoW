@@ -39,8 +39,15 @@ public:
     // Example hook: called when a skill is learned/updated.
     static void OnSkillUpdated(uint32_t characterId, uint32_t skillId);
 
+    // LogHooks (Aurora.Skills.LogHooks) turns the two hooks above into log lines.
+    // They run on every experience gain, so it is off by default and only useful
+    // while tracing why a skill or xp amount looks wrong.
+    static void SetLogHooks(bool enabled);
+    static bool LogHooks();
+
 private:
     // Any per-instance state goes here (no global state in modules).
+    static bool s_logHooks;
 };
 
 } // namespace Aurora

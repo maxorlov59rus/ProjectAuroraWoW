@@ -1,5 +1,5 @@
 /*
- * AuroraBotManager — минимальный менеджер ботов.
+ * AuroraBotManager - минимальный менеджер ботов.
  * В реальном проекте здесь будут CreatePlayer, DB-хранилище и т.д.
 */
 #pragma once

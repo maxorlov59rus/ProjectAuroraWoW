@@ -1,10 +1,10 @@
 #
-# ClasslessSystem module — loadable AzerothCore module
+# ClasslessSystem module - loadable AzerothCore module
 #
 # This module provides a "classless" system where players are not restricted
 # to a fixed class (e.g., WARRIOR, MAGE). Instead, their abilities are
 # determined by a points-based skill system (similar to the existing
-# AuroraSkills module) and can be configured per‑character.
+# AuroraSkills module) and can be configured per-character.
 #
 
 set(CLASSLESSYSTEM_SOURCES
@@ -18,7 +18,7 @@ add_library(ClasslessSystem MODULE ${CLASSLESSYSTEM_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(ClasslessSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

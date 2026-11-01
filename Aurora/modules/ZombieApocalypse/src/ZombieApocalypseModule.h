@@ -1,14 +1,14 @@
 /*
- * ZombieApocalypseModule — модуль апокалипсиса зомби для AzerothCore (Wotlk)
+ * ZombieApocalypseModule - zombie apocalypse module for AzerothCore (WotLK)
  *
- * Предоставляет:
- *   - События апокалипсиса зомби на карте
- *   - Спавн зомби в случайных локациях
- *   - Систему выживания и objectives
- *   - Команды чата и консоли для управления событием
+ * Provides:
+ *   - Zombie apocalypse events on a map
+ *   - Zombie spawns at random locations
+ *   - A survival/objective layer
+ *   - Chat and console commands to drive the event
  *
- * Модуль использует существующие системы AzerothCore (Player, AI, Lua)
- * и расширяет их для сценария выживания от зомби.
+ * The module builds on the existing AzerothCore systems (Player, AI, Lua)
+ * and extends them for the zombie survival scenario.
 */
 
 #pragma once
@@ -28,7 +28,7 @@ class Player;
 class ChatHandler;
 class GameObject;
 
-// Структура данных зомби
+// Zombie data
 struct ZombieInfo
 {
     std::string name;
@@ -37,11 +37,11 @@ struct ZombieInfo
     uint32_t maxHealth;
     float speed;
     bool isAlive;
-    std::string spawnedLocation; // координаты спавна
+    std::string spawnedLocation; // spawn coordinates
     time_t spawnTime;
 };
 
-// Глобальный менеджер зомби
+// Global zombie manager
 class ZombieApocalypseManager
 {
 public:
@@ -51,50 +51,56 @@ public:
         return inst;
     }
 
-    // Создать событие апокалипсиса
+    // Start an apocalypse event
     bool StartEvent(uint32_t durationMinutes, uint32_t maxZombies);
 
-    // Удалить событие и всех зомби
+    // Stop the event and drop all zombies
     void StopEvent();
 
-    // Спавн зомби в случайной локации
+    // Spawn a zombie at a random location
     bool SpawnRandomZombie();
 
-    // Удалить зомби по GUID
+    // Remove a zombie by GUID
     bool RemoveZombie(uint64_t guid);
 
-    // Получить информацию о зombie
+    // Get information about one zombie
     bool GetZombieInfo(uint64_t guid, ZombieInfo& out);
 
-    // Получить список всех живых зомби
+    // All zombies still alive
     std::vector<ZombieInfo> GetLivingZombies() const;
 
-    // Проверить, идет ли сейчас событие
+    // Whether an event is running
     bool IsEventActive() const;
 
-    // Получить оставшееся время события
+    // Seconds left of the running event
     time_t GetRemainingTime() const;
 
-    // Загрузить настройки из configs/modules/aurora_zombie.conf
+    // Load the options from configs/modules/aurora_zombie.conf
     bool Initialize();
     bool IsEnabled() const { return m_enabled; }
     uint32_t DefaultDurationMinutes() const { return m_defaultDurationMinutes; }
+    uint32_t MaxDurationMinutes() const { return m_maxDurationMinutes; }
     uint32_t DefaultMaxZombies() const { return m_defaultMaxZombies; }
+    uint32_t MaxZombieLevel() const { return m_maxZombieLevel; }
+    uint32_t HealthPerLevel() const { return m_healthPerLevel; }
 
 private:
     bool m_enabled = true;
     uint32_t m_defaultDurationMinutes = 30;
+    uint32_t m_maxDurationMinutes = 1440;
     uint32_t m_defaultMaxZombies = 50;
+    uint32_t m_maxZombieLevel = 80;
+    uint32_t m_healthPerLevel = 10;
 
     ZombieApocalypseManager();
     ~ZombieApocalypseManager();
 
-    // Вектор зомби
+    // Zombie registry
     std::map<uint64_t, ZombieInfo> m_zombies;
     mutable std::mutex m_mutex;
     uint64_t m_nextZombieGuid = 1;
 
-    // Настройки события
+    // Running event state
     bool m_eventActive;
     time_t m_eventStartTime;
     time_t m_eventEndTime;

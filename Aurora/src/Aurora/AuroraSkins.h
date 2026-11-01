@@ -37,12 +37,18 @@ public:
     // Hook your server's character->skin update logic here.
     static std::string GetSkinFor(uint32_t characterId);
 
+    // Sets the identifier GetSkinFor() reports for characters without an
+    // explicit skin. AuroraSkins calls it with Aurora.Skins.Default at startup.
+    static void SetDefaultSkin(const std::string& skinId);
+    static std::string const& GetDefaultSkin();
+
     // Registers a skin change listener. Called by AuroraTools on client
     // skin sync events.
     static void RegisterSkinListener(std::function<void(uint32_t, const std::string&)> listener);
 
 private:
     static std::vector<std::function<void(uint32_t, const std::string&)>> s_listeners;
+    static std::string s_defaultSkin;
 };
 
 } // namespace Aurora

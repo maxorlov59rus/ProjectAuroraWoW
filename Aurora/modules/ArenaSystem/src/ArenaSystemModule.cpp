@@ -1,5 +1,5 @@
 /*
- * ArenaSystem module — implementation
+ * ArenaSystem module - implementation
  *
  * Arena team helpers: queueing, ranks and per-team statistics.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// ArenaSystemManager — implementation
+// ArenaSystemManager - implementation
 // ============================================================================
 
 ArenaSystemManager::ArenaSystemManager() = default;
@@ -43,7 +43,7 @@ ArenaSystemManager& ArenaSystemManager::Instance()
 bool ArenaSystemManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Arena.Enabled", "ArenaSystem");
-    m_ratedMinLevel = Aurora::Settings::Get<uint32_t>("Aurora.Arena.RatedMinimumLevel", 80, "ArenaSystem");
+    m_ratedMinLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.Arena.RatedMinimumLevel", 80, 1, 80, "ArenaSystem");
 
     if (!m_enabled)
     {
@@ -51,7 +51,7 @@ bool ArenaSystemManager::Initialize()
         return true;
     }
 
-    LOG_INFO("ArenaSystem", "ArenaSystem module initialized");
+    LOG_INFO("ArenaSystem", "ArenaSystem module initialized (rated arena from level {})", m_ratedMinLevel);
     return true;
 }
 
@@ -64,7 +64,7 @@ void ArenaSystemManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("ArenaSystem", "Player {} logged in — arena system available", p->GetName());
+    LOG_INFO("ArenaSystem", "Player {} logged in - arena system available", p->GetName());
 }
 
 void ArenaSystemManager::OnPlayerLevelUp(Player* p)
@@ -73,7 +73,6 @@ void ArenaSystemManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("ArenaSystem", "Player {} leveled up", p->GetName());
 }
-
 
 // ============================================================================
 // CommandScript
@@ -113,9 +112,24 @@ private:
             return true;
         }
 
-        handler->SendSysMessage("Arena queue command received.");
+        Player* p = handler->GetPlayer();
+        if (p && p->GetLevel() < ArenaSystemManager::Instance().RatedMinLevel())
+        {
+            handler->PSendSysMessage("Rated arena queue requires level {} (you are {}).",
+                ArenaSystemManager::Instance().RatedMinLevel(), p->GetLevel());
+            return true;
+        }
+
+        if (!p)
+        {
+            handler->SendSysMessage("The arena queue command needs an in-game character.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Arena queue request accepted for {}.");
         return true;
     }
+
 
     // ---------- .arena rank ----------
     static bool HandleArenaRankCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -129,6 +143,7 @@ private:
         handler->SendSysMessage("Arena rank command received.");
         return true;
     }
+
 
     // ---------- .arena stats ----------
     static bool HandleArenaStatsCommand(ChatHandler* handler, std::string_view /*args*/)
