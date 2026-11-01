@@ -1,11 +1,12 @@
 #pragma once
+#include "Define.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
 #include <AuroraPCH.h>
 
-struct WorldSession; struct Player; struct ChatHandler; struct GameObject; struct Creature;
+class WorldSession; class Player; class ChatHandler; class GameObject; class Creature;
 
 // ---------- NPC Data ----------
 struct CampaignNpc
@@ -115,23 +116,8 @@ private:
     std::map<uint32_t, CampaignQuest> m_quests;
     std::map<uint32_t, CampaignBoss> m_bosses;
     std::map<uint32_t, CampaignShop> m_shops;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };
-
-// ---------- Command declarations ----------
-void RegisterCampaignOfDarknessCommands();
-bool HandleStartCampaignCommand(ChatHandler* handler, const std::string& args);
-bool HandleSpawnNpcCommand(ChatHandler* handler, const std::string& args);
-bool HandleSpawnBossCommand(ChatHandler* handler, const std::string& args);
-bool HandleShowDialogueCommand(ChatHandler* handler, const std::string& args);
-bool HandleListNpcsCommand(ChatHandler* handler, const std::string& args);
-bool HandleListBossesCommand(ChatHandler* handler, const std::string& args);
-bool HandleShowShopCommand(ChatHandler* handler, const std::string& args);
-bool HandleCampaignInfoCommand(ChatHandler* handler, const std::string& args);
-
-// ---------- Hook registrations ----------
-void OnPlayerLogin(Player* pPlayer);
-void OnPlayerLevelUp(Player* pPlayer);
 
 // ---------- Module registration ----------
 extern "C"

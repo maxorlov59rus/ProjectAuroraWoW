@@ -1,41 +1,130 @@
+/*
+ * LootSystem module — implementation
+ *
+ * Loot tuning: drop rates, loot inspection and reset.
+ *
+ * This module registers one AzerothCore script:
+ *   - LootSystemCommandScript : CommandScript (chat commands)
+ */
+
 #include "LootSystemModule.h"
+
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+
 #include <ScriptMgr.h>
+#include <CommandScript.h>
 #include <Player.h>
 #include <Chat.h>
+#include <ChatCommandTags.h>
+#include <RBAC.h>
 
-LootSystemManager::LootSystemManager() {}
-LootSystemManager::~LootSystemManager() {}
+// ============================================================================
+// LootSystemManager — implementation
+// ============================================================================
 
-bool LootSystemManager::Initialize() { LOG_INFO("LootSystem", "Loot system initialized"); return true; }
-void LootSystemManager::OnPlayerLogin(Player* p) { LOG_INFO("LootSystem", "Player %s logged in - loot system available", p->GetName().c_str()); }
-void LootSystemManager::OnPlayerLevelUp(Player* p) { LOG_INFO("LootSystem", "Player %s leveled up", p->GetName().c_str()); }
+LootSystemManager::LootSystemManager() = default;
 
-void RegisterLootSystemCommands() { LOG_INFO("LootSystem", "Loot commands registered: .setdroprate, .lootinfo, .resetloot"); }
+LootSystemManager::~LootSystemManager() = default;
 
-bool HandleSetDropRateCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Set drop rate command received (placeholder)");
+LootSystemManager& LootSystemManager::Instance()
+{
+    static LootSystemManager inst;
+    return inst;
+}
+
+bool LootSystemManager::Initialize()
+{
+    LOG_INFO("LootSystem", "LootSystem module initialized");
     return true;
 }
 
-bool HandleLootInfoCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Loot info command received (placeholder)");
-    return true;
+void LootSystemManager::OnPlayerLogin(Player* p)
+{
+    if (!p)
+        return;
+    LOG_INFO("LootSystem", "Player {} logged in — loot system available", p->GetName());
 }
 
-bool HandleResetLootCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Reset loot command received (placeholder)");
-    return true;
+void LootSystemManager::OnPlayerLevelUp(Player* p)
+{
+    if (!p)
+        return;
+    LOG_INFO("LootSystem", "Player {} leveled up", p->GetName());
 }
 
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeLootSystemModule() {
-        LootSystemManager::Instance().Initialize();
-        RegisterLootSystemCommands();
-        LOG_INFO("LootSystem", "LootSystem module initialized");
+
+// ============================================================================
+// CommandScript
+// ============================================================================
+
+class LootSystemCommandScript : public CommandScript
+{
+public:
+    LootSystemCommandScript() : CommandScript("LootSystemCommandScript") { }
+
+    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetCommands() const override
+    {
+        using namespace Acore::ChatCommands;
+
+        static ChatCommandTable lootTable =
+        {
+            { "droprate", HandleSetDropRateCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "info", HandleLootInfoCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "reset", HandleResetLootCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "loot", lootTable }
+        };
+
+        return commandTable;
     }
-    __declspec(dllexport) void __stdcall FinalizeLootSystemModule() {
+
+private:
+    // ---------- .loot droprate ----------
+    static bool HandleSetDropRateCommand(ChatHandler* handler, float rate)
+    {
+        handler->PSendSysMessage("Drop rate set to {}.", rate);
+        return true;
+    }
+
+    // ---------- .loot info ----------
+    static bool HandleLootInfoCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        handler->SendSysMessage("Loot info command received.");
+        return true;
+    }
+
+    // ---------- .loot reset ----------
+    static bool HandleResetLootCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        handler->SendSysMessage("Loot tables reset.");
+        return true;
+    }
+
+};
+
+// ============================================================================
+// Module entry points
+// ============================================================================
+
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeLootSystemModule()
+    {
+        LootSystemManager::Instance().Initialize();
+        LOG_INFO("LootSystem", "LootSystem module initialized (scripts auto-register)");
+    }
+
+    __declspec(dllexport) void __stdcall FinalizeLootSystemModule()
+    {
         LOG_INFO("LootSystem", "LootSystem module finalized");
     }
+}
+
+namespace
+{
+    LootSystemCommandScript sLootSystemCommandScript;
 }

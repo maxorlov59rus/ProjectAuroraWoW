@@ -1,41 +1,130 @@
+/*
+ * GuildEnhancements module — implementation
+ *
+ * Guild improvements: bank, ranks and extended info.
+ *
+ * This module registers one AzerothCore script:
+ *   - GuildEnhancementsCommandScript : CommandScript (chat commands)
+ */
+
 #include "GuildEnhancementsModule.h"
+
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+
 #include <ScriptMgr.h>
+#include <CommandScript.h>
 #include <Player.h>
 #include <Chat.h>
+#include <ChatCommandTags.h>
+#include <RBAC.h>
 
-GuildEnhancementsManager::GuildEnhancementsManager() {}
-GuildEnhancementsManager::~GuildEnhancementsManager() {}
+// ============================================================================
+// GuildEnhancementsManager — implementation
+// ============================================================================
 
-bool GuildEnhancementsManager::Initialize() { LOG_INFO("GuildEnhancements", "Guild enhancements initialized"); return true; }
-void GuildEnhancementsManager::OnPlayerLogin(Player* p) { LOG_INFO("GuildEnhancements", "Player %s logged in - guild enhancements available", p->GetName().c_str()); }
-void GuildEnhancementsManager::OnPlayerLevelUp(Player* p) { LOG_INFO("GuildEnhancements", "Player %s leveled up", p->GetName().c_str()); }
+GuildEnhancementsManager::GuildEnhancementsManager() = default;
 
-void RegisterGuildEnhancementsCommands() { LOG_INFO("GuildEnhancements", "Guild commands registered: .guildbank, .guildrank, .guildinfo"); }
+GuildEnhancementsManager::~GuildEnhancementsManager() = default;
 
-bool HandleGuildBankCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Guild bank command received (placeholder)");
+GuildEnhancementsManager& GuildEnhancementsManager::Instance()
+{
+    static GuildEnhancementsManager inst;
+    return inst;
+}
+
+bool GuildEnhancementsManager::Initialize()
+{
+    LOG_INFO("GuildEnhancements", "GuildEnhancements module initialized");
     return true;
 }
 
-bool HandleGuildRankCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Guild rank command received (placeholder)");
-    return true;
+void GuildEnhancementsManager::OnPlayerLogin(Player* p)
+{
+    if (!p)
+        return;
+    LOG_INFO("GuildEnhancements", "Player {} logged in — guild enhancements available", p->GetName());
 }
 
-bool HandleGuildInfoCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Guild info command received (placeholder)");
-    return true;
+void GuildEnhancementsManager::OnPlayerLevelUp(Player* p)
+{
+    if (!p)
+        return;
+    LOG_INFO("GuildEnhancements", "Player {} leveled up", p->GetName());
 }
 
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeGuildEnhancementsModule() {
-        GuildEnhancementsManager::Instance().Initialize();
-        RegisterGuildEnhancementsCommands();
-        LOG_INFO("GuildEnhancements", "GuildEnhancements module initialized");
+
+// ============================================================================
+// CommandScript
+// ============================================================================
+
+class GuildEnhancementsCommandScript : public CommandScript
+{
+public:
+    GuildEnhancementsCommandScript() : CommandScript("GuildEnhancementsCommandScript") { }
+
+    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetCommands() const override
+    {
+        using namespace Acore::ChatCommands;
+
+        static ChatCommandTable guildxTable =
+        {
+            { "bank", HandleGuildBankCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "rank", HandleGuildRankCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "info", HandleGuildInfoCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "guildx", guildxTable }
+        };
+
+        return commandTable;
     }
-    __declspec(dllexport) void __stdcall FinalizeGuildEnhancementsModule() {
+
+private:
+    // ---------- .guildx bank ----------
+    static bool HandleGuildBankCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        handler->SendSysMessage("Guild bank command received.");
+        return true;
+    }
+
+    // ---------- .guildx rank ----------
+    static bool HandleGuildRankCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        handler->SendSysMessage("Guild rank command received.");
+        return true;
+    }
+
+    // ---------- .guildx info ----------
+    static bool HandleGuildInfoCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        handler->SendSysMessage("Guild info command received.");
+        return true;
+    }
+
+};
+
+// ============================================================================
+// Module entry points
+// ============================================================================
+
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeGuildEnhancementsModule()
+    {
+        GuildEnhancementsManager::Instance().Initialize();
+        LOG_INFO("GuildEnhancements", "GuildEnhancements module initialized (scripts auto-register)");
+    }
+
+    __declspec(dllexport) void __stdcall FinalizeGuildEnhancementsModule()
+    {
         LOG_INFO("GuildEnhancements", "GuildEnhancements module finalized");
     }
+}
+
+namespace
+{
+    GuildEnhancementsCommandScript sGuildEnhancementsCommandScript;
 }

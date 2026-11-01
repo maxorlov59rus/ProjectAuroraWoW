@@ -6,18 +6,16 @@
 
 #pragma once
 
+#include "Define.h"
 #include <string>
 #include <vector>
-#include <map>
 #include <mutex>
 
 #include <AuroraPCH.h>
 
 // Forward declarations for AzerothCore APIs
-struct WorldSession;
-struct Player;
-struct ChatHandler;
-struct GameObject;
+class Player;
+class ChatHandler;
 
 // ---------- NpcCustomizer manager ----------
 
@@ -40,26 +38,12 @@ public:
     std::vector<uint64_t> GetSpawnedNpcs() const;
 
 private:
-    NpcCustomizerManager() {}
-    ~NpcCustomizerManager() {}
+    NpcCustomizerManager();
+    ~NpcCustomizerManager();
+    uint64_t m_nextGuid = 1;
     std::vector<uint64_t> m_spawnedNpcs;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };
-
-// ---------- Command declarations ----------
-void RegisterNpcCustomizerCommands();
-bool HandleSpawnNpcCommand(ChatHandler* handler, const std::string& args);
-bool HandleRemoveNpcCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetNpcNameCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetNpcLevelCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetNpcHealthCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetNpcFactionCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetNpcFlagsCommand(ChatHandler* handler, const std::string& args);
-bool HandleListNpcsCommand(ChatHandler* handler, const std::string& args);
-
-// ---------- Hook registrations ----------
-void OnPlayerLogin(Player* pPlayer);
-void OnPlayerLevelUp(Player* pPlayer);
 
 // ---------- Module registration ----------
 extern "C"

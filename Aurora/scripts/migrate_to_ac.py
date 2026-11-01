@@ -9,7 +9,28 @@ from pathlib import Path
 AURORA = Path(r"C:/Users/Orel/.cline/worktrees/b823d/Cline/Aurora")
 AC = Path(r"E:/azerothcore-wotlk-master")
 
-ENABLED = ["CampaignOfLight"]
+# Modules whose sources compile into worldserver. A module moves here once it
+# builds clean; anything else stays "disabled" so it cannot break the build.
+ENABLED = [
+    "AdminTools",
+    "ArenaSystem",
+    "AuroraBots",
+    "AuroraGameModes",
+    "AuroraSkills",
+    "AuroraSkins",
+    "CampaignOfDarkness",
+    "CampaignOfLight",
+    "ClasslessSystem",
+    "Economy",
+    "GuildEnhancements",
+    "LootSystem",
+    "NpcCustomizer",
+    "PetSystem",
+    "QuestSystem",
+    "Teleportation",
+    "WeatherSystem",
+    "ZombieApocalypse",
+]
 
 SRC_SUFFIXES = (".cpp", ".h")
 
@@ -59,6 +80,26 @@ def module_sources(mod: Path):
     return [f for f in sorted(base.iterdir()) if f.suffix in SRC_SUFFIXES]
 
 
+def adapt_to_ac(text: str) -> str:
+    """Adapts Aurora sources to the AzerothCore API they compile against.
+
+    Aurora sources were written against an older/different core API. These
+    rewrites are mechanical, so they live in the migration step instead of
+    being duplicated across every module.
+    """
+    # LOG_INFO/LOG_ERROR are AzerothCore macros from Log.h. AuroraLogging.h
+    # only declares the Aurora::Logging wrapper, so a module that calls
+    # LOG_INFO must include Log.h itself.
+    if "LOG_INFO(" in text or "LOG_ERROR(" in text:
+        if '#include "Log.h"' not in text:
+            text = '#include "Log.h"\n' + text
+
+    # AzerothCore renamed the level accessor.
+    text = text.replace("->getLevel()", "->GetLevel()")
+
+    return text
+
+
 def loader_snippet(dir_name: str) -> str:
     fn = "Add%sScripts" % dir_name.replace("-", "_")
     return """
@@ -93,7 +134,7 @@ def step_copy_modules():
                 fn = "Add%sScripts" % mod.name.replace("-", "_")
                 if fn not in text:
                     text = text.rstrip() + loader_snippet(mod.name)
-            write(dst / f.name, text)
+            write(dst / f.name, adapt_to_ac(text))
             copied.append(f.name)
 
         # NOTE: no CMakeLists.txt on purpose. AC's module loader collects

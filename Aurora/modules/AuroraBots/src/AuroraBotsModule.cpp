@@ -1,156 +1,144 @@
-﻿#include "AuroraBotsModule.h"
+#include "AuroraBotsModule.h"
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
 #include <ScriptMgr.h>
 #include <Player.h>
 #include <Chat.h>
 
-uint64_t AuroraBotManager::CreateBot(const std::string& name, const std::string& className, const std::string& race, const std::string& luaScript)
+// ============================================================================
+// AuroraBotManager
+// ============================================================================
+
+uint64_t AuroraBotManager::CreateBot(const std::string& name,
+                                     const std::string& className,
+                                     const std::string& race,
+                                     const std::string& luaScript)
 {
-    // TODO: Create Player in world, store BotInfo, return Guid
-    LOG_INFO("AuroraBots", "CreateBot called: %s %s %s", name.c_str(), className.c_str(), race.c_str());
-    return 0; // placeholder - will be replaced with actual implementation
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    BotInfo info;
+    info.name = name;
+    info.className = className;
+    info.race = race;
+    info.luaScript = luaScript;
+    info.isRunning = false;
+
+    uint64_t guid = m_nextGuid++;
+    m_bots[guid] = info;
+
+    LOG_INFO("AuroraBots", "Created bot {} ({} {}), guid {}", name, className, race, guid);
+    return guid;
 }
 
 bool AuroraBotManager::DeleteBot(uint64_t guid)
 {
-    LOG_INFO("AuroraBots", "DeleteBot GUID: %llu", guid);
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_bots.find(guid);
+    if (it == m_bots.end())
+        return false;
+
+    m_bots.erase(it);
+    LOG_INFO("AuroraBots", "Deleted bot guid {}", guid);
     return true;
 }
 
-std::vector<BotInfo> AuroraBotManager::ListBots() { return {}; }
+bool AuroraBotManager::GetBot(uint64_t guid, BotInfo& out)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_bots.find(guid);
+    if (it == m_bots.end())
+        return false;
+
+    out = it->second;
+    return true;
+}
+
+std::vector<BotInfo> AuroraBotManager::ListBots() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<BotInfo> list;
+    list.reserve(m_bots.size());
+    for (const auto& [guid, info] : m_bots)
+        list.push_back(info);
+    return list;
+}
+
+bool AuroraBotManager::SetRunning(uint64_t guid, bool running)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    auto it = m_bots.find(guid);
+    if (it == m_bots.end())
+        return false;
+
+    it->second.isRunning = running;
+    return true;
+}
+
+// ============================================================================
+// Chat commands
+// ============================================================================
+
+void RegisterBotCommands()
+{
+    LOG_INFO("AuroraBots", "Bot commands registered: .createbot, .delbot, .listbots, .botai");
+}
 
 bool HandleCreateBotCommand(ChatHandler* handler, const std::string& args)
 {
     // .createbot <name> <class> <race> [script]
-    LOG_INFO("AuroraBots", "HandleCreateBotCommand: %s", args.c_str());
-    handler->SendSysMessage("Р‘РѕС‚ creation command received (placeholder)");
+    LOG_INFO("AuroraBots", "HandleCreateBotCommand: {}", args);
+    handler->SendSysMessage("Bot creation command received (placeholder)");
     return true;
 }
 
-// ---------- Lua Script Loading ----------
-
-static const char* BOT_SCRIPTS_PATH = "scripts/bots/";
-
-bool LoadBotScript(AuroraBot* bot)
+bool HandleDelBotCommand(ChatHandler* handler, const std::string& args)
 {
-    if (bot->GetInfo().luaScript.empty())
+    LOG_INFO("AuroraBots", "HandleDelBotCommand: {}", args);
+    handler->SendSysMessage("Bot deletion command received (placeholder)");
+    return true;
+}
+
+bool HandleListBotsCommand(ChatHandler* handler, const std::string& /*args*/)
+{
+    auto bots = AuroraBotManager::Instance().ListBots();
+    if (bots.empty())
+    {
+        handler->SendSysMessage("No bots registered.");
         return true;
+    }
 
-    std::string scriptPath = std::string(BOT_SCRIPTS_PATH) + bot->GetInfo().luaScript + ".lua";
-
-    // TODO: actual LuaL_loadfile implementation with sScriptMgr
-    // Example skeleton:
-    // lua_State* L = sScriptMgr->GetLuaState();
-    // if (L) {
-    //     int error = luaL_loadfile(L, scriptPath.c_str()) || lua_pcall(L, 0, 0, 0);
-    //     if (error) {
-    //         LOG_ERROR("AuroraBots", "Failed to load bot script %s: %s", scriptPath.c_str(), lua_tostring(L, -1));
-    //         lua_close(L);
-    //         return false;
-    //     }
-    //     // Store Lua state or reference in bot for later use
-    // }
-
-    LOG_INFO("AuroraBots", "Bot script path: %s", scriptPath.c_str());
+    handler->PSendSysMessage("Bots (total: {})", static_cast<uint32>(bots.size()));
+    for (const auto& bot : bots)
+        handler->PSendSysMessage("- {} ({} {}, running: {})", bot.name, bot.className, bot.race,
+                                 bot.isRunning ? "yes" : "no");
     return true;
 }
 
-void RunBotScriptEvent(AuroraBot* bot, const std::string& eventName, uint32_t diff)
+bool HandleBotAiCommand(ChatHandler* handler, const std::string& args)
 {
-    // TODO: execute lua_getglobal(L, eventName.c_str()) + lua_pushnumber + lua_pcall
-    // Example skeleton:
-    // lua_getglobal(L, eventName.c_str());
-    // lua_pushnumber(L, bot->GetInfo().guid);
-    // lua_pushnumber(L, diff);
-    // if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
-    //     LOG_ERROR("AuroraBots", "Error running event %s: %s", eventName.c_str(), lua_tostring(L, -1));
-    // }
-
-    LOG_DEBUG("AuroraBots", "Running event %s for bot (diff=%u)", eventName.c_str(), diff);
-
-// ---------- Lua Script Loading ----------
-
-static const char* BOT_SCRIPTS_PATH = "scripts/bots/";
-
-bool LoadBotScript(AuroraBot* bot)
-{
-    if (bot->GetInfo().luaScript.empty())
-        return true;
-
-    std::string scriptPath = std::string(BOT_SCRIPTS_PATH) + bot->GetInfo().luaScript + ".lua";
-
-    // TODO: actual LuaL_loadfile implementation with sScriptMgr
-    // Example skeleton:
-    // lua_State* L = sScriptMgr->GetLuaState();
-    // if (L) {
-    //     int error = luaL_loadfile(L, scriptPath.c_str()) || lua_pcall(L, 0, 0, 0);
-    //     if (error) {
-    //         LOG_ERROR("AuroraBots", "Failed to load bot script %s: %s", scriptPath.c_str(), lua_tostring(L, -1));
-    //         lua_close(L);
-    //         return false;
-    //     }
-    //     // Store Lua state or reference in bot for later use
-    // }
-
-    LOG_INFO("AuroraBots", "Bot script path: %s", scriptPath.c_str());
+    LOG_INFO("AuroraBots", "HandleBotAiCommand: {}", args);
+    handler->SendSysMessage("Bot AI script command received (placeholder)");
     return true;
 }
 
-void RunBotScriptEvent(AuroraBot* bot, const std::string& eventName, uint32_t diff)
+// ============================================================================
+// Module entry points
+// ============================================================================
+
+extern "C"
 {
-    // TODO: execute lua_getglobal(L, eventName.c_str()) + lua_pushnumber + lua_pcall
-    // Example skeleton:
-    // lua_getglobal(L, eventName.c_str());
-    // lua_pushnumber(L, bot->GetInfo().guid);
-    // lua_pushnumber(L, diff);
-    // if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
-    //     LOG_ERROR("AuroraBots", "Error running event %s: %s", eventName.c_str(), lua_tostring(L, -1));
-    // }
+    __declspec(dllexport) void __stdcall InitializeAuroraBotsModule()
+    {
+        RegisterBotCommands();
+        LOG_INFO("AuroraBots", "AuroraBots module initialized");
+    }
 
-    LOG_DEBUG("AuroraBots", "Running event %s for bot (diff=%u)", eventName.c_str(), diff);
-}
-
-}
-
-// ---------- Lua Script Loading ----------
-
-static const char* BOT_SCRIPTS_PATH = "scripts/bots/";
-
-bool LoadBotScript(AuroraBot* bot)
-{
-    if (bot->GetInfo().luaScript.empty())
-        return true;
-
-    std::string scriptPath = std::string(BOT_SCRIPTS_PATH) + bot->GetInfo().luaScript + ".lua";
-
-    // TODO: actual LuaL_loadfile implementation with sScriptMgr
-    // Example skeleton:
-    // lua_State* L = sScriptMgr->GetLuaState();
-    // if (L) {
-    //     int error = luaL_loadfile(L, scriptPath.c_str()) || lua_pcall(L, 0, 0, 0);
-    //     if (error) {
-    //         LOG_ERROR("AuroraBots", "Failed to load bot script %s: %s", scriptPath.c_str(), lua_tostring(L, -1));
-    //         lua_close(L);
-    //         return false;
-    //     }
-    //     // Store Lua state or reference in bot for later use
-    // }
-
-    LOG_INFO("AuroraBots", "Bot script path: %s", scriptPath.c_str());
-    return true;
-}
-
-void RunBotScriptEvent(AuroraBot* bot, const std::string& eventName, uint32_t diff)
-{
-    // TODO: execute lua_getglobal(L, eventName.c_str()) + lua_pushnumber + lua_pcall
-    // Example skeleton:
-    // lua_getglobal(L, eventName.c_str());
-    // lua_pushnumber(L, bot->GetInfo().guid);
-    // lua_pushnumber(L, diff);
-    // if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
-    //     LOG_ERROR("AuroraBots", "Error running event %s: %s", eventName.c_str(), lua_tostring(L, -1));
-    // }
-
-    LOG_DEBUG("AuroraBots", "Running event %s for bot (diff=%u)", eventName.c_str(), diff);
+    __declspec(dllexport) void __stdcall FinalizeAuroraBotsModule()
+    {
+        LOG_INFO("AuroraBots", "AuroraBots module finalized");
+    }
 }

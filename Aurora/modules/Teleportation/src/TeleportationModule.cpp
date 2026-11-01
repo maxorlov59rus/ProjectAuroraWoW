@@ -4,7 +4,6 @@
 #include <ScriptMgr.h>
 #include <Player.h>
 #include <Chat.h>
-#include <Guid.h>
 
 TeleportationManager::TeleportationManager() {}
 
