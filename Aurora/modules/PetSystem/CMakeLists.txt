@@ -9,19 +9,17 @@ set(PETSYSTEM_SOURCES
     src/PetSystemModule.cpp
 )
 
+add_library(PetSystem MODULE ${PETSYSTEM_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(PetSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(PetSystem PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(PetSystem MODULE ${PETSYSTEM_SOURCES})
-
 target_link_libraries(PetSystem PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(PetSystem PROPERTIES

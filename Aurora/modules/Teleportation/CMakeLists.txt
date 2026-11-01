@@ -9,19 +9,17 @@ set(TELEPORTATION_SOURCES
     src/TeleportationModule.cpp
 )
 
+add_library(Teleportation MODULE ${TELEPORTATION_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(Teleportation PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(Teleportation PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(Teleportation MODULE ${TELEPORTATION_SOURCES})
-
 target_link_libraries(Teleportation PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(Teleportation PROPERTIES

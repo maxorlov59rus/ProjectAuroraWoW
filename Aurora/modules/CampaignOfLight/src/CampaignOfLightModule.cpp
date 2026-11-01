@@ -3,53 +3,59 @@
  *
  * Alliance campaign content: NPCs, dialogues, quests, bosses, shops.
  * Counterpart to CampaignOfDarkness (Horde campaign).
+ *
+ * This module registers two AzerothCore scripts:
+ *   - CampaignOfLightCommandScript : CommandScript  (chat commands)
+ *   - CampaignOfLightPlayerScript  : PlayerScript   (login / level-up hooks)
+ *
+ * Data is loaded lazily from the database on the first command or hook call.
  */
 
 #include "CampaignOfLightModule.h"
+
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+
 #include <ScriptMgr.h>
+#include <CommandScript.h>
 #include <Player.h>
 #include <Chat.h>
+#include <ChatCommandTags.h>
+#include <RBAC.h>
+#include <DatabaseEnv.h>
 #include <Map.h>
 #include <Creature.h>
-#include <DatabaseEnv.h>
 
 // ============================================================================
-// CampaignOfLightManager
+// CampaignOfLightManager — implementation
 // ============================================================================
-
-CampaignOfLightManager::CampaignOfLightManager() = default;
 
 bool CampaignOfLightManager::Initialize()
 {
-    LOG_INFO("CampaignOfLight", "Loading Campaign of Light module data from database…");
+    LOG_INFO("CampaignOfLight", "Campaign of Light module initialized");
+    return true;
+}
+
+void CampaignOfLightManager::EnsureLoaded()
+{
+    std::call_once(m_loadFlag, [this]() { LoadAllFromDb(); });
+}
+
+void CampaignOfLightManager::LoadAllFromDb()
+{
+    LOG_INFO("CampaignOfLight", "Loading Campaign of Light data from database…");
+
     LoadNpcsFromDb();
     LoadQuestsFromDb();
     LoadBossesFromDb();
     LoadShopsFromDb();
-    RegisterCampaignOfLightCommands();
-    LOG_INFO("CampaignOfLight", "Campaign of Light module initialized ({} NPCs, {} quests, {} bosses, {} shops)",
-        static_cast<int>(m_npcs.size()), static_cast<int>(m_quests.size()),
-        static_cast<int>(m_bosses.size()), static_cast<int>(m_shops.size()));
-    return true;
-}
 
-void CampaignOfLightManager::OnPlayerLogin(Player* player)
-{
-    if (!player)
-        return;
-
-    LOG_INFO("CampaignOfLight", "Player {} (guid {}) logged in — Campaign of Light available",
-        player->GetName(), player->GetGUID().GetRawValue());
-}
-
-void CampaignOfLightManager::OnPlayerLevelUp(Player* player, uint8 newLevel)
-{
-    if (!player)
-        return;
-
-    LOG_INFO("CampaignOfLight", "Player {} leveled up to {}", player->GetName(), newLevel);
+    m_loaded = true;
+    LOG_INFO("CampaignOfLight", "Campaign of Light loaded ({} NPCs, {} quests, {} bosses, {} shops)",
+        static_cast<uint32>(m_npcs.size()),
+        static_cast<uint32>(m_quests.size()),
+        static_cast<uint32>(m_bosses.size()),
+        static_cast<uint32>(m_shops.size()));
 }
 
 // ---------- NPC ----------
@@ -106,12 +112,14 @@ bool CampaignOfLightManager::RemoveNpc(uint32 entry)
 
 CampaignNpc const* CampaignOfLightManager::GetNpc(uint32 entry) const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_npcs.find(entry);
     return it != m_npcs.end() ? &it->second : nullptr;
 }
 
 std::vector<CampaignNpc> CampaignOfLightManager::GetNpcs() const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<CampaignNpc> list;
     list.reserve(m_npcs.size());
     for (auto const& [_, npc] : m_npcs)
@@ -230,6 +238,7 @@ bool CampaignOfLightManager::CompleteQuest(Player* player, uint32 questId)
 
 CampaignQuest const* CampaignOfLightManager::GetQuest(uint32 questId) const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_quests.find(questId);
     return it != m_quests.end() ? &it->second : nullptr;
 }
@@ -298,6 +307,7 @@ bool CampaignOfLightManager::RemoveBoss(uint32 bossEntry)
 
 std::vector<CampaignBoss> CampaignOfLightManager::GetBosses() const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<CampaignBoss> list;
     list.reserve(m_bosses.size());
     for (auto const& [_, boss] : m_bosses)
@@ -360,163 +370,219 @@ bool CampaignOfLightManager::ShowShop(Player* player, uint32 vendorEntry)
 }
 
 // ============================================================================
-// Command handlers (AC pattern: ChatHandler*, char const* args)
+// CommandScript — real command registration
 // ============================================================================
 
-bool HandleStartCampaignCommand(ChatHandler* handler, char const* /*args*/)
+class CampaignOfLightCommandScript : public CommandScript
 {
-    Player* player = handler->GetPlayer();
-    if (player)
-        LOG_INFO("CampaignOfLight", "Player {} started Campaign of Light", player->GetName());
+public:
+    CampaignOfLightCommandScript() : CommandScript("CampaignOfLightCommandScript") { }
 
-    handler->SendSysMessage("Campaign of Light started.");
-    return true;
-}
-
-bool HandleSpawnNpcCommand(ChatHandler* handler, char const* args)
-{
-    if (!args || !args[0])
+    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetCommands() const override
     {
-        handler->SendSysMessage("Usage: .cnp spawn <entry>");
+        using namespace Acore::ChatCommands;
+
+        static ChatCommandTable cnpTable =
+        {
+            { "start",      HandleStartCampaignCommand,    rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "spawn",      HandleSpawnNpcCommand,          rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "spawnboss",  HandleSpawnBossCommand,         rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "dialogue",   HandleShowDialogueCommand,      rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "listnpcs",   HandleListNpcsCommand,          rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "listbosses", HandleListBossesCommand,        rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "shop",       HandleShowShopCommand,          rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+            { "info",       HandleCampaignInfoCommand,      rbac::RBAC_PERM_COMMAND_GM, Console::No  },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "cnp", cnpTable }
+        };
+
+        return commandTable;
+    }
+
+private:
+    // ---------- .cnp start ----------
+    static bool HandleStartCampaignCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        Player* player = handler->GetPlayer();
+        if (player)
+            LOG_INFO("CampaignOfLight", "Player {} started Campaign of Light", player->GetName());
+
+        handler->SendSysMessage("Campaign of Light started.");
         return true;
     }
 
-    uint32 entry = static_cast<uint32>(std::stoul(args));
-    auto const* npc = CampaignOfLightManager::Instance().GetNpc(entry);
-    if (npc)
+    // ---------- .cnp spawn <entry> ----------
+    static bool HandleSpawnNpcCommand(ChatHandler* handler, uint32 entry)
     {
-        handler->PSendSysMessage("NPC found: {} (entry {}, level {}, map {})",
-            npc->name, npc->entry, npc->level, npc->mapId);
-    }
-    else
-    {
-        handler->SendSysMessage("NPC not found in database.");
-    }
-    return true;
-}
+        CampaignOfLightManager::Instance().EnsureLoaded();
 
-bool HandleSpawnBossCommand(ChatHandler* handler, char const* /*args*/)
-{
-    handler->SendSysMessage("Spawn boss command (placeholder).");
-    return true;
-}
-
-bool HandleShowDialogueCommand(ChatHandler* handler, char const* args)
-{
-    Player* player = handler->GetPlayer();
-    if (!player)
-    {
-        handler->SendSysMessage("Player not found.");
+        auto const* npc = CampaignOfLightManager::Instance().GetNpc(entry);
+        if (npc)
+        {
+            handler->PSendSysMessage("NPC found: {} (entry {}, level {}, map {})",
+                npc->name, npc->entry, npc->level, npc->mapId);
+        }
+        else
+        {
+            handler->SendSysMessage("NPC not found in database.");
+        }
         return true;
     }
 
-    if (!args || !args[0])
+    // ---------- .cnp spawnboss <entry> ----------
+    static bool HandleSpawnBossCommand(ChatHandler* handler, uint32 entry)
     {
-        handler->SendSysMessage("Usage: .cnp dialogue <npc_entry> <node_id>");
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        auto bosses = CampaignOfLightManager::Instance().GetBosses();
+        auto it = std::find_if(bosses.begin(), bosses.end(),
+            [entry](CampaignBoss const& b) { return b.entry == entry; });
+
+        if (it != bosses.end())
+        {
+            handler->PSendSysMessage("Boss found: {} {} (entry {}, level {}, HP: {})",
+                it->title, it->name, it->entry, it->level, it->health);
+        }
+        else
+        {
+            handler->SendSysMessage("Boss not found in database.");
+        }
         return true;
     }
 
-    std::string_view sv(args);
-    size_t space = sv.find(' ');
-    if (space == std::string_view::npos)
+    // ---------- .cnp dialogue <npc_entry> <node_id> ----------
+    static bool HandleShowDialogueCommand(ChatHandler* handler, uint32 npcEntry, uint32 nodeId)
     {
-        handler->SendSysMessage("Usage: .cnp dialogue <npc_entry> <node_id>");
+        Player* player = handler->GetPlayer();
+        if (!player)
+        {
+            handler->SendSysMessage("Player not found.");
+            return true;
+        }
+
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        if (CampaignOfLightManager::Instance().ShowDialogue(player, npcEntry, nodeId))
+            LOG_INFO("CampaignOfLight", "Dialogue shown for player {}", player->GetName());
+        else
+            handler->SendSysMessage("Dialogue not found.");
+
         return true;
     }
 
-    uint32 npcEntry = static_cast<uint32>(std::stoul(std::string(sv.substr(0, space))));
-    uint32 nodeId   = static_cast<uint32>(std::stoul(std::string(sv.substr(space + 1))));
-
-    if (CampaignOfLightManager::Instance().ShowDialogue(player, npcEntry, nodeId))
-        LOG_INFO("CampaignOfLight", "Dialogue shown for player {}", player->GetName());
-    else
-        handler->SendSysMessage("Dialogue not found.");
-
-    return true;
-}
-
-bool HandleListNpcsCommand(ChatHandler* handler, char const* /*args*/)
-{
-    auto npcs = CampaignOfLightManager::Instance().GetNpcs();
-    if (npcs.empty())
+    // ---------- .cnp listnpcs ----------
+    static bool HandleListNpcsCommand(ChatHandler* handler, std::string_view /*args*/)
     {
-        handler->SendSysMessage("Alliance NPCs not found.");
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        auto npcs = CampaignOfLightManager::Instance().GetNpcs();
+        if (npcs.empty())
+        {
+            handler->SendSysMessage("Alliance NPCs not found.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Alliance NPCs (total: {}):", static_cast<uint32>(npcs.size()));
+        for (auto const& npc : npcs)
+            handler->PSendSysMessage("- {} (entry: {}, level: {}, map: {})",
+                npc.name, npc.entry, npc.level, npc.mapId);
+
         return true;
     }
 
-    handler->PSendSysMessage("Alliance NPCs (total: {}):", static_cast<uint32>(npcs.size()));
-    for (auto const& npc : npcs)
-        handler->PSendSysMessage("- {} (entry: {}, level: {}, map: {})",
-            npc.name, npc.entry, npc.level, npc.mapId);
-
-    return true;
-}
-
-bool HandleListBossesCommand(ChatHandler* handler, char const* /*args*/)
-{
-    auto bosses = CampaignOfLightManager::Instance().GetBosses();
-    if (bosses.empty())
+    // ---------- .cnp listbosses ----------
+    static bool HandleListBossesCommand(ChatHandler* handler, std::string_view /*args*/)
     {
-        handler->SendSysMessage("Alliance bosses not found.");
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        auto bosses = CampaignOfLightManager::Instance().GetBosses();
+        if (bosses.empty())
+        {
+            handler->SendSysMessage("Alliance bosses not found.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Alliance bosses (total: {}):", static_cast<uint32>(bosses.size()));
+        for (auto const& boss : bosses)
+            handler->PSendSysMessage("- {} {} (entry: {}, level: {}, HP: {})",
+                boss.title.empty() ? "" : boss.title,
+                boss.name, boss.entry, boss.level, boss.health);
+
         return true;
     }
 
-    handler->PSendSysMessage("Alliance bosses (total: {}):", static_cast<uint32>(bosses.size()));
-    for (auto const& boss : bosses)
-        handler->PSendSysMessage("- {} {} (entry: {}, level: {}, HP: {})",
-            boss.title.empty() ? "" : boss.title,
-            boss.name, boss.entry, boss.level, boss.health);
-
-    return true;
-}
-
-bool HandleShowShopCommand(ChatHandler* handler, char const* args)
-{
-    Player* player = handler->GetPlayer();
-    if (!player)
+    // ---------- .cnp shop <vendor_entry> ----------
+    static bool HandleShowShopCommand(ChatHandler* handler, uint32 vendorEntry)
     {
-        handler->SendSysMessage("Player not found.");
+        Player* player = handler->GetPlayer();
+        if (!player)
+        {
+            handler->SendSysMessage("Player not found.");
+            return true;
+        }
+
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        if (CampaignOfLightManager::Instance().ShowShop(player, vendorEntry))
+            LOG_INFO("CampaignOfLight", "Shop shown for player {}", player->GetName());
+        else
+            handler->SendSysMessage("Shop not found.");
+
         return true;
     }
 
-    if (!args || !args[0])
+    // ---------- .cnp info ----------
+    static bool HandleCampaignInfoCommand(ChatHandler* handler, std::string_view /*args*/)
     {
-        handler->SendSysMessage("Usage: .cnp shop <vendor_entry>");
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        auto const& mgr = CampaignOfLightManager::Instance();
+        auto npcs  = mgr.GetNpcs();
+        auto bosses = mgr.GetBosses();
+
+        handler->PSendSysMessage("Campaign of Light: NPCs={}, Bosses={}",
+            static_cast<uint32>(npcs.size()), static_cast<uint32>(bosses.size()));
+
         return true;
     }
-
-    uint32 vendorEntry = static_cast<uint32>(std::stoul(args));
-    if (CampaignOfLightManager::Instance().ShowShop(player, vendorEntry))
-        LOG_INFO("CampaignOfLight", "Shop shown for player {}", player->GetName());
-    else
-        handler->SendSysMessage("Shop not found.");
-
-    return true;
-}
-
-bool HandleCampaignInfoCommand(ChatHandler* handler, char const* /*args*/)
-{
-    auto const& mgr = CampaignOfLightManager::Instance();
-    auto npcs  = mgr.GetNpcs();
-    auto bosses = mgr.GetBosses();
-
-    handler->PSendSysMessage("Campaign of Light: NPCs={}, Bosses={}",
-        static_cast<uint32>(npcs.size()), static_cast<uint32>(bosses.size()));
-
-    return true;
-}
+};
 
 // ============================================================================
-// Command registration
+// PlayerScript — login / level-up hooks
 // ============================================================================
 
-void RegisterCampaignOfLightCommands()
+class CampaignOfLightPlayerScript : public PlayerScript
 {
-    LOG_INFO("CampaignOfLight", "Registering Campaign of Light commands");
-}
+public:
+    CampaignOfLightPlayerScript() : PlayerScript("CampaignOfLightPlayerScript") { }
+
+    void OnPlayerLogin(Player* player) override
+    {
+        if (!player)
+            return;
+
+        CampaignOfLightManager::Instance().EnsureLoaded();
+
+        LOG_INFO("CampaignOfLight", "Player {} (guid {}) logged in — Campaign of Light available",
+            player->GetName(), player->GetGUID().GetRawValue());
+
+        // TODO: Check if player has already started this campaign
+    }
+
+    void OnPlayerLevelChanged(Player* player, uint8 /*oldLevel*/) override
+    {
+        if (!player)
+            return;
+
+        LOG_INFO("CampaignOfLight", "Player {} leveled up to {}", player->GetName(), player->GetLevel());
+    }
+};
 
 // ============================================================================
-// Module entry points
+// Module entry points (for the old .dll loader)
 // ============================================================================
 
 extern "C"
@@ -524,11 +590,21 @@ extern "C"
     __declspec(dllexport) void __stdcall InitializeCampaignOfLightModule()
     {
         CampaignOfLightManager::Instance().Initialize();
-        LOG_INFO("CampaignOfLight", "CampaignOfLight module initialized");
+        LOG_INFO("CampaignOfLight", "CampaignOfLight module initialized (scripts auto-register)");
     }
 
     __declspec(dllexport) void __stdcall FinalizeCampaignOfLightModule()
     {
         LOG_INFO("CampaignOfLight", "CampaignOfLight module finalized");
     }
+}
+
+// ============================================================================
+// Static instances — auto-register via constructors
+// ============================================================================
+
+namespace
+{
+    CampaignOfLightCommandScript sCampaignOfLightCommandScript;
+    CampaignOfLightPlayerScript  sCampaignOfLightPlayerScript;
 }

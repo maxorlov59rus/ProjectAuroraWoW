@@ -8,19 +8,17 @@ set(ECONOMY_SOURCES
     src/EconomyModule.cpp
 )
 
+add_library(Economy MODULE ${ECONOMY_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(Economy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(Economy PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(Economy MODULE ${ECONOMY_SOURCES})
-
 target_link_libraries(Economy PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(Economy PROPERTIES

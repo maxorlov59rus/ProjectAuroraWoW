@@ -13,19 +13,17 @@ set(CAMPAIGNOFDARKNESS_SOURCES
     src/CampaignOfDarknessModule.cpp
 )
 
+add_library(CampaignOfDarkness MODULE ${CAMPAIGNOFDARKNESS_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(CampaignOfDarkness PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(CampaignOfDarkness PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(CampaignOfDarkness MODULE ${CAMPAIGNOFDARKNESS_SOURCES})
-
 target_link_libraries(CampaignOfDarkness PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(CampaignOfDarkness PROPERTIES

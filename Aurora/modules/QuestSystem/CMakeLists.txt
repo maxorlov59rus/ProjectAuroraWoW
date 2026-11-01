@@ -8,19 +8,17 @@ set(QUESTSYSTEM_SOURCES
     src/QuestSystemModule.cpp
 )
 
+add_library(QuestSystem MODULE ${QUESTSYSTEM_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(QuestSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(QuestSystem PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(QuestSystem MODULE ${QUESTSYSTEM_SOURCES})
-
 target_link_libraries(QuestSystem PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(QuestSystem PROPERTIES

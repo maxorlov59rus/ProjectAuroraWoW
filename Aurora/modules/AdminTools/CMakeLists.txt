@@ -8,19 +8,17 @@ set(ADMINTOOLS_SOURCES
     src/AdminToolsModule.cpp
 )
 
+add_library(AdminTools MODULE ${ADMINTOOLS_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(AdminTools PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(AdminTools PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(AdminTools MODULE ${ADMINTOOLS_SOURCES})
-
 target_link_libraries(AdminTools PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(AdminTools PROPERTIES
