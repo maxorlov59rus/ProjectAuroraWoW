@@ -13,6 +13,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install MySQL
+      run: choco install mysql -y
+    
+    - name: Clone AzerothCore
+      run: git clone --depth 1 https://github.com/azerothcore/azerothcore-wotlk.git ../azerothcore-wotlk
+    
     - name: Setup CMake
       uses: jwlawson/actions-setup-cmake@v2
       with:
@@ -30,7 +36,7 @@ jobs:
     - name: Configure
       shell: powershell
       run: |
-        cmake -S Aurora -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_GENERATOR_INSTANCE="${{ steps.vs.outputs.vs_path }}"
+        cmake -S Aurora -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DAZEROTHCORE_SOURCE_DIR="${{ github.workspace }}/../azerothcore-wotlk" -DCMAKE_GENERATOR_INSTANCE="${{ steps.vs.outputs.vs_path }}"
     
     - name: Build
       run: cmake --build build --config RelWithDebInfo --parallel 4
