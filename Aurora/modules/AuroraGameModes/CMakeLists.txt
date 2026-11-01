@@ -11,10 +11,15 @@ set(AUROGAMEMODES_SOURCES
 
 add_library(AuroraGameModes MODULE ${AUROGAMEMODES_SOURCES})
 
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+target_include_directories(AuroraGameModes PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
+)
 # AzerothCore core library provides the module API
 target_link_libraries(AuroraGameModes PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(AuroraGameModes PROPERTIES

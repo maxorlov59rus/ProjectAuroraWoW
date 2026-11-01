@@ -23,6 +23,8 @@
 
 cmake_minimum_required(VERSION 3.16...3.22)
 
+project(Aurora VERSION 1.0.0 LANGUAGES CXX C)
+
 # --- AzerothCore source tree location -------------------------------
 # Default: relative to Aurora project (../azerothcore-wotlk)
 # Override at configure time, e.g.:
@@ -61,6 +63,16 @@ message(STATUS "AzerothCore source: ${AZEROTHCORE_SOURCE_DIR}")
 # --- Load AzerothCore's own build system ------------------------------
 # NOTE: AzerothCore's root CMakeLists internally calls project(AzerothCore ...)
 # so the resulting binaries are named worldserver / authserver.
+#
+# AzerothCore resolves its own cmake-macros, conf/ and modules/ relative to
+# CMAKE_SOURCE_DIR. Aurora is Aurora's own top-level project, so before we
+# descend into AC we prepend AC's macro directory to CMAKE_MODULE_PATH and
+# point AC's internal roots at its own tree (Aurora owns these variables at
+# the top level). This keeps AC's build mechanism intact while Aurora stays
+# the umbrella project that also builds src/Aurora and modules/*.
+list(APPEND CMAKE_MODULE_PATH "${AZEROTHCORE_SOURCE_DIR}/src/cmake/macros")
+set(AC_PATH_ROOT "${AZEROTHCORE_SOURCE_DIR}")
+
 add_subdirectory(${AZEROTHCORE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/azerothcore-build)
 
 # --- Aurora custom C++ layer (server side) ---------------------------

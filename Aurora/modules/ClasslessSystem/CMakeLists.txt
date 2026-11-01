@@ -13,21 +13,19 @@ set(CLASSLESSYSTEM_SOURCES
 
 # 1. Add Aurora core layer include directory so this module can include
 #    Aurora classes (AuroraSkills, AuroraLogging, etc.).
+# 2. Add AzerothCore script mgr include path (for Lua/script hooks)
+add_library(ClasslessSystem MODULE ${CLASSLESSYSTEM_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(ClasslessSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-# 2. Add AzerothCore script mgr include path (for Lua/script hooks)
-target_include_directories(ClasslessSystem PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(ClasslessSystem MODULE ${CLASSLESSYSTEM_SOURCES})
-
 # Bind against the Aurora core layer and AzerothCore's module API.
 target_link_libraries(ClasslessSystem PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(ClasslessSystem PROPERTIES

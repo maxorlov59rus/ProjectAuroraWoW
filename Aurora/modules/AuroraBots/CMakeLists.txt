@@ -12,23 +12,21 @@ set(AURABOTS_SOURCES
 
 # 1. Add Aurora core layer include directory so this module can include
 #    Aurora classes (AuroraBot, AuroraLogging, etc.).
-target_include_directories(AuroraBots PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
-)
-
 # 2. Add the AzerothCore script mgr include path (where Lua scripting is handled)
 #    We assume AzerothCore provides ScriptMgr; the exact path is set by the
 #    master CMake when AzerothCore is added as a subdirectory.
-target_include_directories(AuroraBots PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
 add_library(AuroraBots MODULE ${AURABOTS_SOURCES})
 
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+target_include_directories(AuroraBots PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
+)
 # Bind against the Aurora core layer and AzerothCore's module/API.
 target_link_libraries(AuroraBots PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
     # Link against AzerothCore's script module if needed
 )
 

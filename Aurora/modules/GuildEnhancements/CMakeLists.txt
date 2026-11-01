@@ -8,19 +8,17 @@ set(GUILDENHANCEMENTS_SOURCES
     src/GuildEnhancementsModule.cpp
 )
 
+add_library(GuildEnhancements MODULE ${GUILDENHANCEMENTS_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(GuildEnhancements PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(GuildEnhancements PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(GuildEnhancements MODULE ${GUILDENHANCEMENTS_SOURCES})
-
 target_link_libraries(GuildEnhancements PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(GuildEnhancements PROPERTIES

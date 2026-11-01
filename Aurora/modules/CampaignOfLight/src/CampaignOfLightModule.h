@@ -1,82 +1,86 @@
 #pragma once
 
-#include <string>
-#include <vector>
+// AzerothCore's integral typedefs (uint8/uint32/...) and DLL export macros.
+#include "Define.h"
+
 #include <map>
 #include <mutex>
-#include <memory>
+#include <string>
+#include <vector>
 
 class Player;
-class ChatHandler;
 
 // ---------- NPC Data ----------
 struct CampaignNpc
 {
-    uint32 entry;
+    uint32 entry = 0;
     std::string name;
     std::string title;
-    uint8 level;
-    uint32 health;
-    float x, y, z;
-    uint32 mapId;
+    uint8 level = 1;
+    uint32 health = 0;
+    float x = 0.f, y = 0.f, z = 0.f;
+    uint32 mapId = 0;
     std::string dialoguesScript;
-    bool isBoss;
-    bool isVendor;
+    bool isBoss = false;
+    bool isVendor = false;
 };
 
 // ---------- Dialogue System ----------
 struct DialogueNode
 {
-    uint32 id;
+    uint32 id = 0;
     std::string text;
     std::vector<uint32> nextNodes;
     std::string luaScript;
-    bool isEnd;
+    bool isEnd = false;
 };
 
 // ---------- Quest Data ----------
 struct CampaignQuest
 {
-    uint32 questId;
+    uint32 questId = 0;
     std::string title;
     std::string description;
-    uint8 level;
-    uint32 rewardGold;
-    uint32 rewardXp;
+    uint8 level = 1;
+    uint32 rewardGold = 0;
+    uint32 rewardXp = 0;
     std::string rewardItems;
     std::string luaScript;
-    uint32 startNpcEntry;
-    uint32 endNpcEntry;
+    uint32 startNpcEntry = 0;
+    uint32 endNpcEntry = 0;
 };
 
 // ---------- Boss Data ----------
 struct CampaignBoss
 {
-    uint32 entry;
+    uint32 entry = 0;
     std::string name;
     std::string title;
-    uint8 level;
-    uint32 health;
-    uint32 mana;
+    uint8 level = 80;
+    uint32 health = 0;
+    uint32 mana = 0;
     std::string abilities;
     std::string spawnScript;
-    float x, y, z;
-    uint32 mapId;
-    uint32 respawnTime;
+    float x = 0.f, y = 0.f, z = 0.f;
+    uint32 mapId = 0;
+    uint32 respawnTime = 3600;
 };
 
 // ---------- Shop Data ----------
 struct CampaignShop
 {
-    uint32 vendorEntry;
+    uint32 vendorEntry = 0;
     std::string name;
-    std::string items; // comma-separated item entries
+    std::string items;
     std::string luaScript;
-    float discountHorde;
-    float discountAlliance;
+    float discountHorde = 0.f;
+    float discountAlliance = 0.f;
 };
 
-// ---------- Campaign Manager ----------
+// ============================================================================
+// CampaignOfLightManager — shared state (single instance)
+// ============================================================================
+
 class CampaignOfLightManager
 {
 public:
@@ -90,40 +94,43 @@ public:
     CampaignOfLightManager& operator=(CampaignOfLightManager const&) = delete;
 
     bool Initialize();
-    void OnPlayerLogin(Player* player);
-    void OnPlayerLevelUp(Player* player, uint8 newLevel);
 
-    // NPC management
+    // Загрузка выполняется лениво: скрипты CommandScript/PlayerScript
+    // регистрируются при старте ядра, до вызова точек входа модуля.
+    void EnsureLoaded();
+    bool IsLoaded() const { return m_loaded; }
+
+    // NPC
     void LoadNpcsFromDb();
     bool AddNpc(CampaignNpc const& npc);
     bool RemoveNpc(uint32 entry);
     CampaignNpc const* GetNpc(uint32 entry) const;
     std::vector<CampaignNpc> GetNpcs() const;
 
-    // Dialogue management
+    // Dialogue
     bool AddDialogue(uint32 npcEntry, DialogueNode const& node);
     bool ShowDialogue(Player* player, uint32 npcEntry, uint32 nodeId);
 
-    // Quest management
+    // Quest
     void LoadQuestsFromDb();
     bool AddQuest(CampaignQuest const& quest);
     bool StartQuest(Player* player, uint32 questId);
     bool CompleteQuest(Player* player, uint32 questId);
     CampaignQuest const* GetQuest(uint32 questId) const;
 
-    // Boss management
+    // Boss
     void LoadBossesFromDb();
     bool SpawnBoss(uint32 bossEntry, float x, float y, float z, uint32 mapId);
     bool RemoveBoss(uint32 bossEntry);
     std::vector<CampaignBoss> GetBosses() const;
 
-    // Shop management
+    // Shop
     void LoadShopsFromDb();
     bool AddShop(CampaignShop const& shop);
     bool ShowShop(Player* player, uint32 vendorEntry);
 
 private:
-    CampaignOfLightManager();
+    CampaignOfLightManager() = default;
     ~CampaignOfLightManager() = default;
 
     std::map<uint32, CampaignNpc> m_npcs;
@@ -131,24 +138,9 @@ private:
     std::map<uint32, CampaignQuest> m_quests;
     std::map<uint32, CampaignBoss> m_bosses;
     std::map<uint32, CampaignShop> m_shops;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
+    std::once_flag m_loadFlag;
+    bool m_loaded = false;
+
+    void LoadAllFromDb();
 };
-
-// ---------- Command registration ----------
-void RegisterCampaignOfLightCommands();
-
-bool HandleStartCampaignCommand(ChatHandler* handler, char const* args);
-bool HandleSpawnNpcCommand(ChatHandler* handler, char const* args);
-bool HandleSpawnBossCommand(ChatHandler* handler, char const* args);
-bool HandleShowDialogueCommand(ChatHandler* handler, char const* args);
-bool HandleListNpcsCommand(ChatHandler* handler, char const* args);
-bool HandleListBossesCommand(ChatHandler* handler, char const* args);
-bool HandleShowShopCommand(ChatHandler* handler, char const* args);
-bool HandleCampaignInfoCommand(ChatHandler* handler, char const* args);
-
-// ---------- Module registration ----------
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeCampaignOfLightModule();
-    __declspec(dllexport) void __stdcall FinalizeCampaignOfLightModule();
-}

@@ -8,19 +8,17 @@ set(LOOTSYSTEM_SOURCES
     src/LootSystemModule.cpp
 )
 
+add_library(LootSystem MODULE ${LOOTSYSTEM_SOURCES})
+
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+# Must come AFTER add_library — CMake forbids target_* on unknown targets.
 target_include_directories(LootSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )
-
-target_include_directories(LootSystem PRIVATE
-    ${AURORA_CORE_INCLUDE_DIR}
-)
-
-add_library(LootSystem MODULE ${LOOTSYSTEM_SOURCES})
-
 target_link_libraries(LootSystem PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(LootSystem PROPERTIES

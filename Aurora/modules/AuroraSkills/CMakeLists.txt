@@ -11,9 +11,14 @@ set(AURASKILLS_SOURCES
 
 add_library(AuroraSkills MODULE ${AURASKILLS_SOURCES})
 
+
+# Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
+target_include_directories(AuroraSkills PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
+)
 target_link_libraries(AuroraSkills PRIVATE
     AuroraCore
-    AzerothCoreLib
+    game
 )
 
 set_target_properties(AuroraSkills PROPERTIES
