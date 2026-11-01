@@ -76,3 +76,24 @@ void AuroraBot::OnSpellCast(uint32 diff)
 bool AuroraBot::GetInfo() const { return m_info; }
 
 } // namespace Aurora
+void AuroraBot::OnUpdate(uint32 diff)
+{
+    // NEW: Run Lua script event
+    RunBotScriptEvent(this, "OnBotUpdate", diff);
+
+    if (!m_initialized) return;
+
+    OnMove(diff);
+    OnSpellCast(diff);
+}
+
+void AuroraBot::OnUpdate(uint32 diff)
+{
+    // NEW: Run Lua script event
+    RunBotScriptEvent(this, "OnBotUpdate", diff);
+
+    if (!m_initialized) return;
+
+    OnMove(diff);
+    OnSpellCast(diff);
+}

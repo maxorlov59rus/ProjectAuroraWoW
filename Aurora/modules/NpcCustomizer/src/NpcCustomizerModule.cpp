@@ -79,3 +79,210 @@ extern "C" {
         LOG_INFO("NpcCustomizer", "NpcCustomizer module finalized");
     }
 }
+// ---------- Command registrations ----------
+
+void RegisterNpcCustomizerCommands()
+{
+    LOG_INFO("NpcCustomizer", "NPC Customizer commands registered: .spawnnpc, .removenpc, .setnpcname, .setnpclevel, .setnpchp, .setnpcfaction, .setnpcflags, .listnpcs");
+}
+
+bool HandleSpawnNpcCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 4) {
+        handler->SendSysMessage("Использование: .spawnnpc <entry> <x> <y> <z> [mapId] [name]");
+        return true;
+    }
+
+    uint32_t entry = uint32_t(std::stoul(tokens[0]));
+    float x = std::stof(tokens[1]);
+    float y = std::stof(tokens[1]);
+    float z = std::stof(tokens[1]);
+    uint32_t mapId = (tokens.size() > 4) ? uint32_t(std::stoul(tokens[4])) : 0;
+    std::string name = (tokens.size() > 5) ? tokens[5] : "";
+
+    if (NpcCustomizerManager::Instance().SpawnNpc(entry, x, y, z, mapId, name)) {
+        handler->SendSysMessage("NPC entry %u spawned at (%.2f, %.2f, %.2f) map %u", entry, x, y, z, mapId);
+    } else {
+        handler->SendSysMessage("Не удалось спавн NPC entry %u", entry);
+    }
+    return true;
+}
+
+bool HandleRemoveNpcCommand(ChatHandler* handler, const std::string& args)
+{
+    if (args.empty()) {
+        handler->SendSysMessage("Использование: .removenpc <guid>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    try { guid = std::stoull(args); } catch (...) { guid = 0; }
+
+    if (NpcCustomizerManager::Instance().RemoveNpc(guid)) {
+        handler->SendSysMessage("NPC GUID %llu удален.", (unsigned long long)guid);
+    } else {
+        handler->SendSysMessage("NPC GUID %llu не найден.", (unsigned long long)guid);
+    }
+    return true;
+}
+
+bool HandleSetNpcNameCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 2) {
+        handler->SendSysMessage("Использование: .setnpcname <guid> <name>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    try { guid = std::stoull(tokens[0]); } catch (...) { guid = 0; }
+    std::string name = tokens[1];
+
+    NpcCustomizerManager::Instance().SetNpcName(guid, name);
+    handler->SendSysMessage("NPC %llu имя установлено на %s", (unsigned long long)guid, name.c_str());
+    return true;
+}
+
+bool HandleSetNpcLevelCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 2) {
+        handler->SendSysMessage("Использование: .setnpclevel <guid> <level>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    uint32_t level = 0;
+    try { guid = std::stoull(tokens[0]); level = uint32_t(std::stoul(tokens[1])); } catch (...) { guid = 0; }
+
+    NpcCustomizerManager::Instance().SetNpcLevel(guid, level);
+    handler->SendSysMessage("NPC %llu уровень установлен на %u", (unsigned long long)guid, level);
+    return true;
+}
+
+bool HandleSetNpcHealthCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 3) {
+        handler->SendSysMessage("Использование: .setnpchp <guid> <health> <maxHealth>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    uint32_t health = 0, maxHealth = 0;
+    try { guid = std::stoull(tokens[0]); health = uint32_t(std::stoul(tokens[1])); maxHealth = uint32_t(std::stoul(tokens[2])); } catch (...) { guid = 0; }
+
+    NpcCustomizerManager::Instance().SetNpcHealth(guid, health, maxHealth);
+    handler->SendSysMessage("NPC %llu здоровье установлено на %u/%u", (unsigned long long)guid, health, maxHealth);
+    return true;
+}
+
+bool HandleSetNpcFactionCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 2) {
+        handler->SendSysMessage("Использование: .setnpcfaction <guid> <faction>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    uint32_t faction = 0;
+    try { guid = std::stoull(tokens[0]); faction = uint32_t(std::stoul(tokens[1])); } catch (...) { guid = 0; }
+
+    NpcCustomizerManager::Instance().SetNpcFaction(guid, faction);
+    handler->SendSysMessage("NPC %llu фракция установлена на %u", (unsigned long long)guid, faction);
+    return true;
+}
+
+bool HandleSetNpcFlagsCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 2) {
+        handler->SendSysMessage("Использование: .setnpcflags <guid> <flags>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    uint32_t flags = 0;
+    try { guid = std::stoull(tokens[0]); flags = uint32_t(std::stoul(tokens[1])); } catch (...) { guid = 0; }
+
+    NpcCustomizerManager::Instance().SetNpcFlags(guid, flags);
+    handler->SendSysMessage("NPC %llu флаги установлены на %u", (unsigned long long)guid, flags);
+    return true;
+}
+
+bool HandleListNpcsCommand(ChatHandler* handler, const std::string& args)
+{
+    auto npcs = NpcCustomizerManager::Instance().GetSpawnedNpcs();
+    if (npcs.empty()) {
+        handler->SendSysMessage("Спавненых NPC нет.");
+        return true;
+    }
+
+    handler->SendSysMessage("Спавненых NPC (всего: %d):", (int)npcs.size());
+    for (const auto& guid : npcs) {
+        handler->SendSysMessage("- GUID: %llu", (unsigned long long)guid);
+    }
+    return true;
+}

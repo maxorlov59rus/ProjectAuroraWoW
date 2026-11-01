@@ -1,0 +1,20 @@
+-- Insert Spawn List
+INSERT IGNORE INTO campaign_spawn_list (spawn_type, entry, faction, zone, float_x, float_y, float_z, float_o, map_id, spawn_time, respawn_time, max_count) VALUES
+('npc', 90001, 'horde', 'Durotar', -5200, -1000, 50, 0, 1, 0, 300, 1),
+('npc', 90002, 'horde', 'Durotar', -5100, -900, 50, 0, 1, 0, 300, 1),
+('npc', 90003, 'horde', 'Durotar', -5000, -800, 50, 0, 1, 0, 300, 1),
+('npc', 90004, 'horde', 'Durotar', -5150, -950, 50, 0, 1, 0, 300, 1),
+('npc', 90005, 'horde', 'Durotar', -5250, -980, 50, 0, 1, 0, 300, 1),
+('npc', 90006, 'horde', 'Durotar', -5280, -1010, 50, 0, 1, 0, 300, 1),
+('npc', 90010, 'neutral', 'Stonetalon Mountains', -3400, -2800, 120, 0, 1, 300, 3600, 1),
+('npc', 91001, 'alliance', 'Dun Morogh', -6000, -2800, 500, 0, 0, 0, 300, 1),
+('npc', 91002, 'alliance', 'Dun Morogh', -5900, -2700, 500, 0, 0, 0, 300, 1),
+('npc', 91003, 'alliance', 'Dun Morogh', -5950, -2750, 500, 0, 0, 0, 300, 1),
+('npc', 91004, 'alliance', 'Dun Morogh', -5800, -2600, 500, 0, 0, 0, 300, 1),
+('npc', 91005, 'alliance', 'Dun Morogh', -5850, -2780, 500, 0, 0, 0, 300, 1),
+('npc', 91006, 'alliance', 'Dun Morogh', -5820, -2740, 500, 0, 0, 0, 300, 1),
+('npc', 91010, 'neutral', 'Ironforge', -6100, -2900, 500, 0, 0, 300, 3600, 1),
+('boss', 92001, 'neutral', 'Stonetalon Mountains', -3400, -2800, 120, 0, 1, 0, 7200, 1),
+('boss', 92002, 'neutral', 'Darkshore', -4200, 1600, 100, 0, 1, 0, 7200, 1),
+('boss', 92003, 'neutral', 'Ironforge', -6100, -2900, 500, 0, 0, 0, 7200, 1),
+('boss', 92004, 'neutral', 'Durotar', -5200, -1000, 50, 0, 1, 0, 7200, 1);

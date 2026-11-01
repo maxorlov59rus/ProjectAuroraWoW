@@ -320,3 +320,150 @@ std::vector<CampaignNpc> CampaignOfDarknessManager::GetNpcs() const
     }
     return list;
 }
+// ---------- Command registrations ----------
+
+void RegisterCampaignOfDarknessCommands()
+{
+    LOG_INFO("CampaignOfDarkness", "Campaign commands registered: .startcampaign, .stopevent, .spawnnpc, .listnpcs, .listbosses, .showshop, .campaigninfo");
+}
+
+bool HandleStartEventCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 2) {
+        handler->SendSysMessage("Использование: .startevent <минуты> <максимум_зомби>");
+        return true;
+    }
+
+    uint32_t durationMinutes = uint32_t(std::stoul(tokens[1]));
+    uint32_t maxZombies = (tokens.size() > 2) ? uint32_t(std::stoul(tokens[2])) : 50;
+
+    if (CampaignOfDarknessManager::Instance().StartEvent(durationMinutes, maxZombies)) {
+        handler->SendSysMessage("Апокалипсис зомби начат на %d минут с максимумом %d зомби", durationMinutes, maxZombies);
+    } else {
+        handler->SendSysMessage("Не удалось начать событие (возможно, оно уже запущено).");
+    }
+    return true;
+}
+
+bool HandleStopEventCommand(ChatHandler* handler, const std::string& args)
+{
+    CampaignOfDarknessManager::Instance().StopEvent();
+    handler->SendSysMessage("Апокалипсис зомби остановлен");
+    return true;
+}
+
+bool HandleSpawnNpcCommand(ChatHandler* handler, const std::string& args)
+{
+    if (CampaignOfDarknessManager::Instance().SpawnRandomZombie()) {
+        handler->SendSysMessage("Зомби спавнен в случайной локации");
+    } else {
+        handler->SendSysMessage("Не удалось спавн зомби (событие неактивно или предел достигнут)");
+    }
+    return true;
+}
+
+bool HandleListNpcsCommand(ChatHandler* handler, const std::string& args)
+{
+    auto zombies = CampaignOfDarknessManager::Instance().GetLivingZombies();
+    if (zombies.empty()) {
+        handler->SendSysMessage("Зомби не spawn'ены или событие неактивно.");
+        return true;
+    }
+
+    handler->SendSysMessage("Зомби (всего: %d):", (int)zombies.size());
+    for (const auto& zombie : zombies) {
+        handler->SendSysMessage("- %s, уровень %u, здоровье %u/%u, локация: %s",
+            zombie.name.c_str(), zombie.level, zombie.health, zombie.maxHealth, zombie.spawnedLocation.c_str());
+    }
+    return true;
+}
+
+bool HandleZombieHealthCommand(ChatHandler* handler, const std::string& args)
+{
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    std::string rem = args;
+    while ((pos = rem.find(' ')) != std::string::npos) {
+        token = rem.substr(0, pos);
+        tokens.push_back(token);
+        rem.erase(0, pos + 1);
+    }
+    tokens.push_back(rem);
+
+    if (tokens.size() < 1) {
+        handler->SendSysMessage("Использование: .zombiehealth <guid>");
+        return true;
+    }
+
+    uint64_t guid = 0;
+    try { guid = std::stoull(tokens[1]); } catch (...) { guid = 0; }
+
+    ZombieInfo info;
+    if (CampaignOfDarknessManager::Instance().GetZombieInfo(guid, info)) {
+        handler->SendSysMessage("Зомби: %s, уровень %u, здоровье %u/%u, спавн: %s",
+            info.name.c_str(), info.level, info.health, info.maxHealth, info.spawnedLocation.c_str());
+    } else {
+        handler->SendSysMessage("Зомби с GUID %llu не найден", (unsigned long long)guid);
+    }
+    return true;
+}
+
+// ---------- Hook registrations ----------
+
+void OnPlayerLogin(Player* pPlayer)
+{
+    if (IsEventActive())
+    {
+        time_t remaining = GetRemainingTime();
+        int minutes = remaining > 0 ? (int)(remaining / 60) : 0;
+        LOG_INFO("CampaignOfDarkness", "Player %s logged in during active apocalypse event (%d minutes remaining)", pPlayer->GetName().c_str(), minutes);
+    }
+
+void OnPlayerLevelUp(Player* pPlayer)
+{
+    if (IsEventActive())
+    {
+        LOG_INFO("CampaignOfDarkness", "Player %s leveled up during apocalypse event", pPlayer->GetName().c_str());
+    }
+}
+
+// ---------- Utility functions ----------
+
+uint32_t GetZombieLevelForPlayer(Player* pPlayer)
+{
+    if (!pPlayer) return 80;
+    return std::min(80, pPlayer->getLevel() + 5);
+}
+
+float RandomFloat(float min, float max)
+{
+    return min + static_cast<float>(rand() % (int)(max - min + 1));
+}
+
+// ---------- Module registration ----------
+
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeCampaignOfDarknessModule()
+    {
+        RegisterCampaignOfDarknessCommands();
+        LOG_INFO("CampaignOfDarkness", "Campaign of Darkness module initialized");
+    }
+    
+    __declspec(dllexport) void __stdcall FinalizeCampaignOfDarknessModule()
+    {
+        LOG_INFO("CampaignOfDarkness", "Campaign of Darkness module finalized");
+    }
+}
