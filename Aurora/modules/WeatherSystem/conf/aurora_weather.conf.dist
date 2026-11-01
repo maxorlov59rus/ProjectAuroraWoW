@@ -1,0 +1,19 @@
+# ============================================================================
+# WeatherSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_weather.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Weather.Enabled
+#        Enable the Aurora weather overrides (.weather commands).
+#        Default:     1
+
+Aurora.Weather.Enabled = 1
+
+#    Aurora.Weather.StormDurationSecs
+#        Default storm duration used when .weather storm is called without one.
+#        Default:     300
+
+Aurora.Weather.StormDurationSecs = 300

@@ -1,24 +1,29 @@
 #pragma once
+#include "Define.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
 #include <AuroraPCH.h>
 
-struct WorldSession; struct Player; struct ChatHandler;
+class WorldSession; class Player; class ChatHandler;
 
 class EconomyManager {
 public:
-    static EconomyManager& Instance() { static EconomyManager inst; return inst; }
-    bool Initialize() { LOG_INFO("Economy", "Economy system initialized"); return true; }
-    void OnPlayerLogin(Player* p) { LOG_INFO("Economy", "Player %s logged in - economy system available", p->GetName().c_str()); }
-    void OnPlayerLevelUp(Player* p) { LOG_INFO("Economy", "Player %s leveled up", p->GetName().c_str()); }
+    EconomyManager();
+    ~EconomyManager();
+    static EconomyManager& Instance();
+    bool Initialize();
+    void OnPlayerLogin(Player* p);
+    void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    uint32_t AuctionDepositPercent() const { return m_auctionDepositPercent; }
+
+private:
+    bool m_enabled = true;
+    uint32_t m_auctionDepositPercent = {};
 };
 
-void RegisterEconomyCommands();
-bool HandleAuctionCommand(ChatHandler* h, const std::string& a);
-bool HandleCurrencyCommand(ChatHandler* h, const std::string& a);
-bool HandleExchangeCommand(ChatHandler* h, const std::string& a);
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializeEconomyModule();

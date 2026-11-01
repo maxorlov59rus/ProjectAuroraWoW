@@ -1,41 +1,194 @@
+/*
+ * AdminTools module — implementation
+ *
+ * GM helpers: admin panel, server info and an umbrella command.
+ *
+ * This module registers two AzerothCore scripts:
+ *   - AdminToolsCommandScript : CommandScript (chat commands)
+ *   - AdminToolsWorldScript    : WorldScript  (reads the module options at startup)
+ *
+ * Settings live in configs/modules/aurora_admintools.conf (see AdminTools/conf/aurora_admintools.conf.dist). They
+ * are read in WorldScript::OnStartup, not in a static initializer, because the
+ * core only loads the module config files after its own one.
+ */
+
 #include "AdminToolsModule.h"
+
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
+
 #include <ScriptMgr.h>
+#include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
+#include <ChatCommandTags.h>
+#include <RBAC.h>
 
-AdminToolsManager::AdminToolsManager() {}
-AdminToolsManager::~AdminToolsManager() {}
+// ============================================================================
+// AdminToolsManager — implementation
+// ============================================================================
 
-bool AdminToolsManager::Initialize() { LOG_INFO("AdminTools", "Admin tools initialized"); return true; }
-void AdminToolsManager::OnPlayerLogin(Player* p) { LOG_INFO("AdminTools", "Player %s logged in - admin tools available", p->GetName().c_str()); }
-void AdminToolsManager::OnPlayerLevelUp(Player* p) { LOG_INFO("AdminTools", "Player %s leveled up", p->GetName().c_str()); }
+AdminToolsManager::AdminToolsManager() = default;
 
-void RegisterAdminToolsCommands() { LOG_INFO("AdminTools", "Admin commands registered: .gm, .adminpanel, .serverinfo"); }
+AdminToolsManager::~AdminToolsManager() = default;
 
-bool HandleGmCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("GM command received (placeholder)");
-    return true;
+AdminToolsManager& AdminToolsManager::Instance()
+{
+    static AdminToolsManager inst;
+    return inst;
 }
 
-bool HandleAdminPanelCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Admin panel command received (placeholder)");
-    return true;
-}
+bool AdminToolsManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.AdminTools.Enabled", "AdminTools");
+    m_requireSession = Aurora::Settings::Enabled("Aurora.AdminTools.RequireSession", "AdminTools", true);
 
-bool HandleServerInfoCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Server info command received (placeholder)");
-    return true;
-}
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeAdminToolsModule() {
-        AdminToolsManager::Instance().Initialize();
-        RegisterAdminToolsCommands();
-        LOG_INFO("AdminTools", "AdminTools module initialized");
+    if (!m_enabled)
+    {
+        LOG_INFO("AdminTools", "AdminTools disabled by Aurora.AdminTools.Enabled");
+        return true;
     }
-    __declspec(dllexport) void __stdcall FinalizeAdminToolsModule() {
+
+    LOG_INFO("AdminTools", "AdminTools module initialized");
+    return true;
+}
+
+bool AdminToolsManager::IsEnabled() const
+{
+    return m_enabled;
+}
+
+void AdminToolsManager::OnPlayerLogin(Player* p)
+{
+    if (!p || !m_enabled)
+        return;
+    LOG_INFO("AdminTools", "Player {} logged in — admin tools available", p->GetName());
+}
+
+void AdminToolsManager::OnPlayerLevelUp(Player* p)
+{
+    if (!p || !m_enabled)
+        return;
+    LOG_INFO("AdminTools", "Player {} leveled up", p->GetName());
+}
+
+
+// ============================================================================
+// CommandScript
+// ============================================================================
+
+class AdminToolsCommandScript : public CommandScript
+{
+public:
+    AdminToolsCommandScript() : CommandScript("AdminToolsCommandScript") { }
+
+    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetCommands() const override
+    {
+        using namespace Acore::ChatCommands;
+
+        static ChatCommandTable adminTable =
+        {
+            { "adminpanel", HandleAdminPanelCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "serverinfo", HandleServerInfoCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "help", HandleAdminCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "admin", adminTable }
+        };
+
+        return commandTable;
+    }
+
+private:
+    // ---------- .admin adminpanel ----------
+    static bool HandleAdminPanelCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        if (!AdminToolsManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("AdminTools is disabled by configuration.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Admin panel is {}.", AdminToolsManager::Instance().RequireSession() ? "restricted to in-game GMs" : "also available from the console");
+        return true;
+    }
+
+    // ---------- .admin serverinfo ----------
+    static bool HandleServerInfoCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        if (!AdminToolsManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("AdminTools is disabled by configuration.");
+            return true;
+        }
+
+        handler->SendSysMessage("Server info command received.");
+        return true;
+    }
+
+    // ---------- .admin help ----------
+    static bool HandleAdminCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        if (!AdminToolsManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("AdminTools is disabled by configuration.");
+            return true;
+        }
+
+        handler->SendSysMessage("Commands: .admin adminpanel, .admin serverinfo, .admin help.");
+        return true;
+    }
+
+};
+
+// ============================================================================
+// WorldScript
+// ============================================================================
+
+class AdminToolsWorldScript : public WorldScript
+{
+public:
+    AdminToolsWorldScript() : WorldScript("AdminToolsWorldScript") { }
+
+    void OnStartup() override
+    {
+        AdminToolsManager::Instance().Initialize();
+    }
+};
+
+// ============================================================================
+// Module entry points (for the old .dll loader)
+// ============================================================================
+
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeAdminToolsModule()
+    {
+        LOG_INFO("AdminTools", "AdminTools module loaded (scripts auto-register)");
+    }
+
+    __declspec(dllexport) void __stdcall FinalizeAdminToolsModule()
+    {
         LOG_INFO("AdminTools", "AdminTools module finalized");
     }
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddAdminToolsScripts()
+{
+    new AdminToolsCommandScript();
+    new AdminToolsWorldScript();
 }

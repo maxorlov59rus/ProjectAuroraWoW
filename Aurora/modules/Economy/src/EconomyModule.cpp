@@ -1,41 +1,194 @@
+/*
+ * Economy module — implementation
+ *
+ * Custom economy hooks: auctions, currencies and exchanges.
+ *
+ * This module registers two AzerothCore scripts:
+ *   - EconomyCommandScript : CommandScript (chat commands)
+ *   - EconomyWorldScript    : WorldScript  (reads the module options at startup)
+ *
+ * Settings live in configs/modules/aurora_economy.conf (see Economy/conf/aurora_economy.conf.dist). They
+ * are read in WorldScript::OnStartup, not in a static initializer, because the
+ * core only loads the module config files after its own one.
+ */
+
 #include "EconomyModule.h"
+
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
+
 #include <ScriptMgr.h>
+#include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
+#include <ChatCommandTags.h>
+#include <RBAC.h>
 
-EconomyManager::EconomyManager() {}
-EconomyManager::~EconomyManager() {}
+// ============================================================================
+// EconomyManager — implementation
+// ============================================================================
 
-bool EconomyManager::Initialize() { LOG_INFO("Economy", "Economy system initialized"); return true; }
-void EconomyManager::OnPlayerLogin(Player* p) { LOG_INFO("Economy", "Player %s logged in - economy system available", p->GetName().c_str()); }
-void EconomyManager::OnPlayerLevelUp(Player* p) { LOG_INFO("Economy", "Player %s leveled up", p->GetName().c_str()); }
+EconomyManager::EconomyManager() = default;
 
-void RegisterEconomyCommands() { LOG_INFO("Economy", "Economy commands registered: .auction, .currency, .exchange"); }
+EconomyManager::~EconomyManager() = default;
 
-bool HandleAuctionCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Auction command received (placeholder)");
-    return true;
+EconomyManager& EconomyManager::Instance()
+{
+    static EconomyManager inst;
+    return inst;
 }
 
-bool HandleCurrencyCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Currency command received (placeholder)");
-    return true;
-}
+bool EconomyManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.Economy.Enabled", "Economy");
+    m_auctionDepositPercent = Aurora::Settings::Get<uint32_t>("Aurora.Economy.AuctionDepositPercent", 5, "Economy");
 
-bool HandleExchangeCommand(ChatHandler* h, const std::string& a) {
-    h->SendSysMessage("Exchange command received (placeholder)");
-    return true;
-}
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeEconomyModule() {
-        EconomyManager::Instance().Initialize();
-        RegisterEconomyCommands();
-        LOG_INFO("Economy", "Economy module initialized");
+    if (!m_enabled)
+    {
+        LOG_INFO("Economy", "Economy disabled by Aurora.Economy.Enabled");
+        return true;
     }
-    __declspec(dllexport) void __stdcall FinalizeEconomyModule() {
+
+    LOG_INFO("Economy", "Economy module initialized");
+    return true;
+}
+
+bool EconomyManager::IsEnabled() const
+{
+    return m_enabled;
+}
+
+void EconomyManager::OnPlayerLogin(Player* p)
+{
+    if (!p || !m_enabled)
+        return;
+    LOG_INFO("Economy", "Player {} logged in — economy system available", p->GetName());
+}
+
+void EconomyManager::OnPlayerLevelUp(Player* p)
+{
+    if (!p || !m_enabled)
+        return;
+    LOG_INFO("Economy", "Player {} leveled up", p->GetName());
+}
+
+
+// ============================================================================
+// CommandScript
+// ============================================================================
+
+class EconomyCommandScript : public CommandScript
+{
+public:
+    EconomyCommandScript() : CommandScript("EconomyCommandScript") { }
+
+    std::vector<Acore::ChatCommands::ChatCommandBuilder> GetCommands() const override
+    {
+        using namespace Acore::ChatCommands;
+
+        static ChatCommandTable economyTable =
+        {
+            { "auction", HandleAuctionCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "currency", HandleCurrencyCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+            { "exchange", HandleExchangeCommand, rbac::RBAC_PERM_COMMAND_GM, Console::No },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "economy", economyTable }
+        };
+
+        return commandTable;
+    }
+
+private:
+    // ---------- .economy auction ----------
+    static bool HandleAuctionCommand(ChatHandler* handler, uint32 bid)
+    {
+        if (!EconomyManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("Economy is disabled by configuration.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Auction of bid {} needs a {} percent deposit.", bid, EconomyManager::Instance().AuctionDepositPercent());
+        return true;
+    }
+
+    // ---------- .economy currency ----------
+    static bool HandleCurrencyCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        if (!EconomyManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("Economy is disabled by configuration.");
+            return true;
+        }
+
+        handler->SendSysMessage("Currency command received.");
+        return true;
+    }
+
+    // ---------- .economy exchange ----------
+    static bool HandleExchangeCommand(ChatHandler* handler, std::string_view /*args*/)
+    {
+        if (!EconomyManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("Economy is disabled by configuration.");
+            return true;
+        }
+
+        handler->SendSysMessage("Exchange command received.");
+        return true;
+    }
+
+};
+
+// ============================================================================
+// WorldScript
+// ============================================================================
+
+class EconomyWorldScript : public WorldScript
+{
+public:
+    EconomyWorldScript() : WorldScript("EconomyWorldScript") { }
+
+    void OnStartup() override
+    {
+        EconomyManager::Instance().Initialize();
+    }
+};
+
+// ============================================================================
+// Module entry points (for the old .dll loader)
+// ============================================================================
+
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeEconomyModule()
+    {
+        LOG_INFO("Economy", "Economy module loaded (scripts auto-register)");
+    }
+
+    __declspec(dllexport) void __stdcall FinalizeEconomyModule()
+    {
         LOG_INFO("Economy", "Economy module finalized");
     }
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddEconomyScripts()
+{
+    new EconomyCommandScript();
+    new EconomyWorldScript();
 }

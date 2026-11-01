@@ -1,24 +1,29 @@
 #pragma once
+#include "Define.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
 #include <AuroraPCH.h>
 
-struct WorldSession; struct Player; struct ChatHandler;
+class WorldSession; class Player; class ChatHandler;
 
 class LootSystemManager {
 public:
-    static LootSystemManager& Instance() { static LootSystemManager inst; return inst; }
-    bool Initialize() { LOG_INFO("LootSystem", "Loot system initialized"); return true; }
-    void OnPlayerLogin(Player* p) { LOG_INFO("LootSystem", "Player %s logged in - loot system available", p->GetName().c_str()); }
-    void OnPlayerLevelUp(Player* p) { LOG_INFO("LootSystem", "Player %s leveled up", p->GetName().c_str()); }
+    LootSystemManager();
+    ~LootSystemManager();
+    static LootSystemManager& Instance();
+    bool Initialize();
+    void OnPlayerLogin(Player* p);
+    void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    float DropRate() const { return m_dropRate; }
+
+private:
+    bool m_enabled = true;
+    float m_dropRate = {};
 };
 
-void RegisterLootSystemCommands();
-bool HandleSetDropRateCommand(ChatHandler* h, const std::string& a);
-bool HandleLootInfoCommand(ChatHandler* h, const std::string& a);
-bool HandleResetLootCommand(ChatHandler* h, const std::string& a);
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializeLootSystemModule();

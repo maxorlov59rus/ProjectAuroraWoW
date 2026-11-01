@@ -1,0 +1,19 @@
+# ============================================================================
+# AdminTools module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_admintools.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.AdminTools.Enabled
+#        Enable the Aurora admin commands (.admin adminpanel, .admin serverinfo).
+#        Default:     1
+
+Aurora.AdminTools.Enabled = 1
+
+#    Aurora.AdminTools.RequireSession
+#        Reject the commands when they are issued from the console rather than by an in-game GM.
+#        Default:     1
+
+Aurora.AdminTools.RequireSession = 1

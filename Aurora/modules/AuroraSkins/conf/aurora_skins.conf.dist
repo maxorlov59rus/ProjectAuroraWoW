@@ -1,0 +1,19 @@
+# ============================================================================
+# AuroraSkins module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_skins.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Skins.Enabled
+#        Load the Aurora skin registry at startup.
+#        Default:     1
+
+Aurora.Skins.Enabled = 1
+
+#    Aurora.Skins.Default
+#        Skin id reported for characters without an explicit skin.
+#        Default:     "default"
+
+Aurora.Skins.Default = "default"

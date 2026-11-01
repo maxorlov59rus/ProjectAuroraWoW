@@ -1,0 +1,21 @@
+# ============================================================================
+# LootSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_loot.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Loot.Enabled
+#        Enable the Aurora loot helpers (.loot commands).
+#        Default:     1
+
+Aurora.Loot.Enabled = 1
+
+#    Aurora.Loot.DropRate
+#        Default drop-rate multiplier applied by .loot droprate at startup.
+#        1.0 = vanilla rates. This is an Aurora-side rate, it does not change
+#        the core Rate.Drop.Mobs.* settings.
+#        Default:     1.0
+
+Aurora.Loot.DropRate = 1.0

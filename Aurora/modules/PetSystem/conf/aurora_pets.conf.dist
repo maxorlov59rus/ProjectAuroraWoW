@@ -1,0 +1,19 @@
+# ============================================================================
+# PetSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_pets.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Pets.Enabled
+#        Enable the Aurora pet helpers (.pet commands).
+#        Default:     1
+
+Aurora.Pets.Enabled = 1
+
+#    Aurora.Pets.DefaultLevel
+#        Level given to a pet spawned without an explicit level.
+#        Default:     1
+
+Aurora.Pets.DefaultLevel = 1

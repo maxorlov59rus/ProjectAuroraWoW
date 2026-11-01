@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "Define.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -22,10 +23,10 @@
 #include <AuroraPCH.h>
 
 // Forward declarations for AzerothCore APIs
-struct WorldSession;
-struct Player;
-struct ChatHandler;
-struct GameObject;
+class WorldSession;
+class Player;
+class ChatHandler;
+class GameObject;
 
 // Структура данных зомби
 struct ZombieInfo
@@ -69,18 +70,28 @@ public:
     std::vector<ZombieInfo> GetLivingZombies() const;
 
     // Проверить, идет ли сейчас событие
-    bool IsEventActive() const { return m_eventActive; }
+    bool IsEventActive() const;
 
     // Получить оставшееся время события
-    time_t GetRemainingTime() const { return m_eventEndTime - time(nullptr); }
+    time_t GetRemainingTime() const;
+
+    // Загрузить настройки из configs/modules/aurora_zombie.conf
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+    uint32_t DefaultDurationMinutes() const { return m_defaultDurationMinutes; }
+    uint32_t DefaultMaxZombies() const { return m_defaultMaxZombies; }
 
 private:
-    ZombieApocalypseManager() : m_eventActive(false), m_maxZombies(50) {}
-    ~ZombieApocalypseManager() { StopEvent(); }
+    bool m_enabled = true;
+    uint32_t m_defaultDurationMinutes = 30;
+    uint32_t m_defaultMaxZombies = 50;
+
+    ZombieApocalypseManager();
+    ~ZombieApocalypseManager();
 
     // Вектор зомби
     std::map<uint64_t, ZombieInfo> m_zombies;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     uint64_t m_nextZombieGuid = 1;
 
     // Настройки события
@@ -91,15 +102,6 @@ private:
     uint32_t m_maxZombies;
 };
 
-// ---------- Command declarations ----------
-void RegisterZombieApocalypseCommands();
-bool HandleStartEventCommand(ChatHandler* handler, const std::string& args);
-bool HandleStopEventCommand(ChatHandler* handler, const std::string& args);
-bool HandleSpawnZombieCommand(ChatHandler* handler, const std::string& args);
-bool HandleListZombiesCommand(ChatHandler* handler, const std::string& args);
-bool HandleZombieHealthCommand(ChatHandler* handler, const std::string& args);
-
 // ---------- Utility functions ----------
 uint32_t GetZombieLevelForPlayer(Player* pPlayer);
 void SpawnZombieAtLocation(Player* pPlayer, const std::string& locationName);
-#endif // ZOMBIE_APOCALYPSE_MODULE_H

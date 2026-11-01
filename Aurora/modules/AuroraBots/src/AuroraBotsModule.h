@@ -5,7 +5,7 @@
 #include <mutex>
 #include <AuroraPCH.h>
 
-struct WorldSession; struct Player; struct ChatHandler;
+class WorldSession; class Player; class ChatHandler;
 
 struct BotInfo
 {
@@ -23,12 +23,19 @@ public:
     uint64_t CreateBot(const std::string& name, const std::string& className, const std::string& race, const std::string& luaScript = "");
     bool DeleteBot(uint64_t guid);
     bool GetBot(uint64_t guid, BotInfo& out);
-    std::vector<BotInfo> ListBots();
+    std::vector<BotInfo> ListBots() const;
     bool SetRunning(uint64_t guid, bool running);
+
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+    uint32_t MaxBots() const { return m_maxBots; }
+
 private:
+    bool m_enabled = true;
+    uint32_t m_maxBots = 20;
     std::map<uint64_t, BotInfo> m_bots;
     uint64_t m_nextGuid = 1;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };
 
 void RegisterBotCommands();

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Define.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -14,9 +15,9 @@
 #include <AuroraPCH.h>
 
 // Forward declarations for AzerothCore APIs
-struct WorldSession;
-struct Player;
-struct ChatHandler;
+class WorldSession;
+class Player;
+class ChatHandler;
 
 // Структура точки телепортации
 struct TeleportLocation
@@ -55,23 +56,20 @@ public:
     // Проверить, существует ли локация
     bool LocationExists(const std::string& name) const;
 
+    bool IsEnabled() const { return m_enabled; }
+
 private:
-    TeleportationManager() {}
-    ~TeleportationManager() {}
+    TeleportationManager();
+    ~TeleportationManager();
 
     std::map<std::string, TeleportLocation> m_locations;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
+    bool m_enabled = true;
 };
 
-// ---------- Command declarations ----------
-void RegisterTeleportationCommands();
-bool HandleTeleportCommand(ChatHandler* handler, const std::string& args);
-bool HandleAddLocationCommand(ChatHandler* handler, const std::string& args);
-bool HandleListLocationsCommand(ChatHandler* handler, const std::string& args);
-bool HandleDelLocationCommand(ChatHandler* handler, const std::string& args);
-
-// ---------- Hook registrations ----------
-void OnPlayerLogin(Player* pPlayer);
-void OnPlayerLevelUp(Player* pPlayer);
-
-#endif // TELEPORTATION_MODULE_H
+// ---------- Module registration ----------
+extern "C"
+{
+    __declspec(dllexport) void __stdcall InitializeTeleportationModule();
+    __declspec(dllexport) void __stdcall FinalizeTeleportationModule();
+}

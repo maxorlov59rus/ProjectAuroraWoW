@@ -15,9 +15,11 @@
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -32,6 +34,14 @@
 
 bool CampaignOfLightManager::Initialize()
 {
+    m_enabled = Aurora::Settings::Enabled("Aurora.CampaignOfLight.Enabled", "CampaignOfLight");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("CampaignOfLight", "Campaign of Light disabled by Aurora.CampaignOfLight.Enabled");
+        return true;
+    }
+
     LOG_INFO("CampaignOfLight", "Campaign of Light module initialized");
     return true;
 }
@@ -605,6 +615,38 @@ extern "C"
 
 namespace
 {
-    CampaignOfLightCommandScript sCampaignOfLightCommandScript;
-    CampaignOfLightPlayerScript  sCampaignOfLightPlayerScript;
+    // Options live in configs/modules/, which the core loads after
+    // worldserver.conf, so Initialize() runs here rather than at static-init
+    // time (where the values would not be available yet).
+    class CampaignOfLightWorldScript : public WorldScript
+    {
+    public:
+        CampaignOfLightWorldScript() : WorldScript("CampaignOfLightWorldScript") { }
+
+        void OnStartup() override
+        {
+            CampaignOfLightManager::Instance().Initialize();
+        }
+    };
+
+
+
+
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddCampaignOfLightScripts()
+{
+    new CampaignOfLightCommandScript();
+    new CampaignOfLightPlayerScript();
+    new CampaignOfLightWorldScript();
 }

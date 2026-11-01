@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "Define.h"
 #include <string>
 #include <map>
 #include <mutex>
@@ -21,9 +22,9 @@
 #include <AuroraPCH.h>
 
 // Forward declarations for AzerothCore APIs
-struct WorldSession;
-struct Player;
-struct ChatHandler;
+class WorldSession;
+class Player;
+class ChatHandler;
 
 // ---------- Classless player info ----------
 struct ClasslessInfo
@@ -42,6 +43,8 @@ struct ClasslessInfo
 class ClasslessManager
 {
 public:
+    ClasslessManager();
+    ~ClasslessManager();
     static ClasslessManager& Instance()
     {
         static ClasslessManager inst;
@@ -70,17 +73,18 @@ public:
     // Add skill points (e.g., from level-up).
     bool AddSkillPoints(uint64_t guid, uint32_t points);
 
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+    uint32_t PointsPerLevel() const { return m_pointsPerLevel; }
+
 private:
+    bool m_enabled = true;
+    uint32_t m_pointsPerLevel = 2;
+
     std::map<uint64_t, ClasslessInfo> m_players;
     uint64_t m_nextGuid = 1;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };
-
-// ---------- Command declarations (will be defined in .cpp) ----------
-void RegisterClasslessCommands();
-bool HandleClasslessCommand(ChatHandler* handler, const std::string& args);
-bool HandleSetSkillsCommand(ChatHandler* handler, const std::string& args);
-bool HandleListClasslessCommand(ChatHandler* handler, const std::string& args);
 
 // ---------- Helper: map class name to AzerothCore class mask ----------
 uint32_t GetClassMaskForName(const std::string& name);
@@ -88,41 +92,9 @@ uint32_t GetClassMaskForName(const std::string& name);
 // Helper: check if a player is classless.
 bool IsClassless(Player* pPlayer);
 
-// Hook: called when a player logs in, apply classless modifications.
-void OnPlayerLogin(Player* pPlayer);
-
-// Hook: called on level-up, redistribute skill points if needed.
-void OnPlayerLevelUp(Player* pPlayer);
-
-// -------------------------------------------------------------------------
-// Inline definitions (kept minimal to avoid ODR issues in header)
-// -------------------------------------------------------------------------
-
-inline uint32_t GetClassMaskForName(const std::string& name)
+// ---------- Module registration ----------
+extern "C"
 {
-    // Simple mapping; AzerothCore uses bitmask constants PLAYER_CLASS_*.
-    if (name == "WARRIOR")  return 0x00000001; // CLASS_WARRIOR
-    if (name == "MAGE")     return 0x00000002; // CLASS_MAGE
-    if (name == "ROGUE")    return 0x00000004; // CLASS_ROGUE
-    if (name == "DRUID")    return 0x00000008; // CLASS_DRUID
-    if (name == "PALADIN")  return 0x00000010; // CLASS_PALADIN
-    if (name == "PRIEST")   return 0x00000020; // CLASS_PRIEST
-    if (name == "SHAMAN")   return 0x00000040; // CLASS_SHAMAN
-    if (name == "WARLOCK")  return 0x00000080; // CLASS_WARLOCK
-    if (name == "HUNTER")   return 0x00000100; // CLASS_HUNTER
-    // "NONE" or empty -> classless (bit 0 reserved for flag)
-    return 0x00000001; // fallback
+    __declspec(dllexport) void __stdcall InitializeClasslessSystemModule();
+    __declspec(dllexport) void __stdcall FinalizeClasslessSystemModule();
 }
-
-inline bool IsClassless(Player* pPlayer)
-{
-    if (!pPlayer) return false;
-    // Check if the class mask equals the "none" flag (we'll use bit 31 for classless)
-    uint32_t mask = pPlayer->getClassMask(); // AzerothCore method
-    return (mask & 0x80000000) != 0; // we reserve MSB as classless flag
-}
-
-// -------------------------------------------------------------------------
-// End of header
-// -------------------------------------------------------------------------
-#endif // CLASSLESS_SYSTEM_MODULE_H

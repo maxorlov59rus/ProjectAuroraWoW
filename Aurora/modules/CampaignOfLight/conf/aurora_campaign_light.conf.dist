@@ -1,0 +1,13 @@
+# ============================================================================
+# CampaignOfLight module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_campaign_light.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.CampaignOfLight.Enabled
+#        Enable the Alliance campaign (.cnp commands and login hooks).
+#        Default:     1
+
+Aurora.CampaignOfLight.Enabled = 1

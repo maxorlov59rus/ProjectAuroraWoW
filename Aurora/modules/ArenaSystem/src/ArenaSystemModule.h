@@ -1,24 +1,29 @@
 #pragma once
+#include "Define.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
 #include <AuroraPCH.h>
 
-struct WorldSession; struct Player; struct ChatHandler;
+class WorldSession; class Player; class ChatHandler;
 
 class ArenaSystemManager {
 public:
-    static ArenaSystemManager& Instance() { static ArenaSystemManager inst; return inst; }
-    bool Initialize() { LOG_INFO("ArenaSystem", "Arena system initialized"); return true; }
-    void OnPlayerLogin(Player* p) { LOG_INFO("ArenaSystem", "Player %s logged in - arena system available", p->GetName().c_str()); }
-    void OnPlayerLevelUp(Player* p) { LOG_INFO("ArenaSystem", "Player %s leveled up", p->GetName().c_str()); }
+    ArenaSystemManager();
+    ~ArenaSystemManager();
+    static ArenaSystemManager& Instance();
+    bool Initialize();
+    void OnPlayerLogin(Player* p);
+    void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    uint32_t RatedMinLevel() const { return m_ratedMinLevel; }
+
+private:
+    bool m_enabled = true;
+    uint32_t m_ratedMinLevel = {};
 };
 
-void RegisterArenaSystemCommands();
-bool HandleArenaQueueCommand(ChatHandler* h, const std::string& a);
-bool HandleArenaRankCommand(ChatHandler* h, const std::string& a);
-bool HandleArenaStatsCommand(ChatHandler* h, const std::string& a);
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializeArenaSystemModule();
