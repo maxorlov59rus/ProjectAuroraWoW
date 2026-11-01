@@ -54,6 +54,8 @@ add_subdirectory(src/Aurora)
 # --- Aurora modules (loadable by the AzerothCore module loader) -------
 add_subdirectory(modules/AuroraGameModes)
 add_subdirectory(modules/AuroraSkills)
+add_subdirectory(modules/ClasslessSystem)
+add_subdirectory(modules/AuroraBots)
 add_subdirectory(modules/AuroraSkins)
 
 # --- Aurora tools -----------------------------------------------------
