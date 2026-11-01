@@ -24,17 +24,32 @@
 cmake_minimum_required(VERSION 3.16...3.22)
 
 # --- AzerothCore source tree location -------------------------------
+# Default: relative to Aurora project (../azerothcore-wotlk)
 # Override at configure time, e.g.:
 #   cmake -DAZEROTHCORE_SOURCE_DIR=E:/azerothcore-wotlk-master ..
-if(NOT AZEROTHCORE_SOURCE_DIR)
-    set(AZEROTHCORE_SOURCE_DIR "E:/azerothcore-wotlk-master"
+if(NOT DEFINED AZEROTHCORE_SOURCE_DIR)
+    set(AZEROTHCORE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../azerothcore-wotlk"
         CACHE PATH "Absolute path to the AzerothCore source tree")
+endif()
+
+# Resolve relative paths to absolute
+get_filename_component(AZEROTHCORE_SOURCE_DIR "${AZEROTHCORE_SOURCE_DIR}" ABSOLUTE)
+
+# If not found, try common locations
+if(NOT EXISTS "${AZEROTHCORE_SOURCE_DIR}")
+    # Try default local development path
+    if(EXISTS "E:/azerothcore-wotlk-master")
+        set(AZEROTHCORE_SOURCE_DIR "E:/azerothcore-wotlk-master" CACHE PATH "Absolute path to the AzerothCore source tree" FORCE)
+    elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../azerothcore-wotlk")
+        set(AZEROTHCORE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../azerothcore-wotlk" CACHE PATH "Absolute path to the AzerothCore source tree" FORCE)
+    endif()
 endif()
 
 if(NOT EXISTS "${AZEROTHCORE_SOURCE_DIR}")
     message(FATAL_ERROR
         "AzerothCore source directory not found:\n  ${AZEROTHCORE_SOURCE_DIR}\n"
-        "Point AZEROTHCORE_SOURCE_DIR to the correct path.")
+        "Point AZEROTHCORE_SOURCE_DIR to the correct path.\n"
+        "Or clone AzerothCore to ../azerothcore-wotlk relative to Aurora project.")
 endif()
 
 # Directory used to install the Aurora modules (relative to the build tree).
@@ -46,7 +61,7 @@ message(STATUS "AzerothCore source: ${AZEROTHCORE_SOURCE_DIR}")
 # --- Load AzerothCore's own build system ------------------------------
 # NOTE: AzerothCore's root CMakeLists internally calls project(AzerothCore ...)
 # so the resulting binaries are named worldserver / authserver.
-add_subdirectory(${AZEROTHCORE_SOURCE_DIR})
+add_subdirectory(${AZEROTHCORE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/azerothcore-build)
 
 # --- Aurora custom C++ layer (server side) ---------------------------
 add_subdirectory(src/Aurora)
