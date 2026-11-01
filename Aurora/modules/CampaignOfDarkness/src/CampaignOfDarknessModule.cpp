@@ -16,9 +16,11 @@
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -33,6 +35,25 @@
 
 bool CampaignOfDarknessManager::Initialize()
 {
+    m_enabled = Aurora::Settings::Enabled("Aurora.CampaignOfDarkness.Enabled", "CampaignOfDarkness");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("CampaignOfDarkness", "Campaign of Darkness disabled by Aurora.CampaignOfDarkness.Enabled");
+        return true;
+    }
+
+    // An empty path is the normal case: the campaign is then filled through
+    // the Add*/Load* API instead of a file shipped with the server.
+    std::string spawnList = Aurora::Settings::Get<std::string>(
+        "Aurora.CampaignOfDarkness.SpawnListFile", "", "CampaignOfDarkness");
+
+    if (!spawnList.empty())
+    {
+        if (!LoadSpawnList(spawnList))
+            LOG_ERROR("CampaignOfDarkness", "Spawn list '{}' could not be loaded", spawnList);
+    }
+
     LOG_INFO("CampaignOfDarkness", "Campaign of Darkness module initialized");
     return true;
 }
@@ -515,6 +536,36 @@ extern "C"
 
 namespace
 {
-    CampaignOfDarknessCommandScript sCampaignOfDarknessCommandScript;
-    CampaignOfDarknessPlayerScript  sCampaignOfDarknessPlayerScript;
+    // See CampaignOfLight: module options are only readable in OnStartup.
+    class CampaignOfDarknessWorldScript : public WorldScript
+    {
+    public:
+        CampaignOfDarknessWorldScript() : WorldScript("CampaignOfDarknessWorldScript") { }
+
+        void OnStartup() override
+        {
+            CampaignOfDarknessManager::Instance().Initialize();
+        }
+    };
+
+
+
+
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddCampaignOfDarknessScripts()
+{
+    new CampaignOfDarknessCommandScript();
+    new CampaignOfDarknessPlayerScript();
+    new CampaignOfDarknessWorldScript();
 }

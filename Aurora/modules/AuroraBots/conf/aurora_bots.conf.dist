@@ -1,0 +1,19 @@
+# ============================================================================
+# AuroraBots module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_bots.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Bots.Enabled
+#        Enable the bot registry and the .bot commands.
+#        Default:     1
+
+Aurora.Bots.Enabled = 1
+
+#    Aurora.Bots.MaxBots
+#        Maximum number of bots the registry accepts (0 = no bots).
+#        Default:     20
+
+Aurora.Bots.MaxBots = 20

@@ -75,7 +75,17 @@ public:
     // Получить оставшееся время события
     time_t GetRemainingTime() const;
 
+    // Загрузить настройки из configs/modules/aurora_zombie.conf
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+    uint32_t DefaultDurationMinutes() const { return m_defaultDurationMinutes; }
+    uint32_t DefaultMaxZombies() const { return m_defaultMaxZombies; }
+
 private:
+    bool m_enabled = true;
+    uint32_t m_defaultDurationMinutes = 30;
+    uint32_t m_defaultMaxZombies = 50;
+
     ZombieApocalypseManager();
     ~ZombieApocalypseManager();
 

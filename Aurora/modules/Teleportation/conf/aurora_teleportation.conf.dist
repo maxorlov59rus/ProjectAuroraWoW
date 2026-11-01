@@ -1,0 +1,20 @@
+# ============================================================================
+# Teleportation module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_teleportation.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Teleportation.Enabled
+#        Enable the Aurora teleportation destinations and commands.
+#        Default:     1
+
+Aurora.Teleportation.Enabled = 1
+
+#    Aurora.Teleportation.LoadDefaults
+#        Register the built-in capital-city destinations at startup.
+#        Disable it when the destinations come from a database table instead.
+#        Default:     1
+
+Aurora.Teleportation.LoadDefaults = 1

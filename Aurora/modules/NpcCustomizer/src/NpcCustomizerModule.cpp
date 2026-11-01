@@ -14,9 +14,11 @@
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -30,8 +32,25 @@ NpcCustomizerManager::NpcCustomizerManager() = default;
 
 NpcCustomizerManager::~NpcCustomizerManager() = default;
 
+bool NpcCustomizerManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.NpcCustomizer.Enabled", "NpcCustomizer");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("NpcCustomizer", "NpcCustomizer disabled by Aurora.NpcCustomizer.Enabled");
+        return true;
+    }
+
+    LOG_INFO("NpcCustomizer", "NpcCustomizer module initialized");
+    return true;
+}
+
 bool NpcCustomizerManager::SpawnNpc(uint32_t npcEntry, float x, float y, float z, uint32_t mapId, const std::string& name)
 {
+    if (!m_enabled)
+        return false;
+
     // TODO: create the real creature through the map spawn helper.
     std::lock_guard<std::mutex> lock(m_mutex);
     uint64_t guid = m_nextGuid++;
@@ -222,7 +241,37 @@ extern "C"
 // Static instance — auto-registers via constructor
 // ============================================================================
 
-namespace
+
+// ============================================================================
+// WorldScript - the module options live in configs/modules/, which the core
+// loads only after worldserver.conf, so they are read here rather than in a
+// static initializer.
+// ============================================================================
+
+class NpcCustomizerWorldScript : public WorldScript
 {
-    NpcCustomizerCommandScript sNpcCustomizerCommandScript;
+public:
+    NpcCustomizerWorldScript() : WorldScript("NpcCustomizerWorldScript") { }
+
+    void OnStartup() override
+    {
+        NpcCustomizerManager::Instance().Initialize();
+    }
+};
+
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddNpcCustomizerScripts()
+{
+    new NpcCustomizerCommandScript();
+    new NpcCustomizerWorldScript();
 }

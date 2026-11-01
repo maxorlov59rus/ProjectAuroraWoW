@@ -16,7 +16,14 @@ public:
     bool Initialize();
     void OnPlayerLogin(Player* p);
     void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    uint32_t BankTabCost() const { return m_bankTabCost; }
+
+private:
+    bool m_enabled = true;
+    uint32_t m_bankTabCost = {};
 };
+
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializeGuildEnhancementsModule();

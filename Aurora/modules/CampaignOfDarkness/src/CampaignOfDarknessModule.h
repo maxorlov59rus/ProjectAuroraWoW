@@ -107,7 +107,11 @@ public:
     bool LoadSpawnList(const std::string& filename);
     bool SaveSpawnList(const std::string& filename);
 
+    bool IsEnabled() const { return m_enabled; }
+
 private:
+    bool m_enabled = true;
+
     CampaignOfDarknessManager() {}
     ~CampaignOfDarknessManager() {}
     

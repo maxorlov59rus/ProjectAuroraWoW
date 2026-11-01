@@ -13,9 +13,11 @@
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -29,6 +31,22 @@ ClasslessManager::ClasslessManager() = default;
 
 ClasslessManager::~ClasslessManager() = default;
 
+bool ClasslessManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.Classless.Enabled", "ClasslessSystem");
+    m_pointsPerLevel = Aurora::Settings::Get<uint32_t>("Aurora.Classless.PointsPerLevel", 2, "ClasslessSystem");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("ClasslessSystem", "ClasslessSystem disabled by Aurora.Classless.Enabled");
+        return true;
+    }
+
+    LOG_INFO("ClasslessSystem", "ClasslessSystem module initialized ({} skill points per level)",
+        m_pointsPerLevel);
+    return true;
+}
+
 bool ClasslessManager::CreateClasslessPlayer(const std::string& name,
                                              uint32_t level,
                                              uint64_t playerGuid,
@@ -36,7 +54,7 @@ bool ClasslessManager::CreateClasslessPlayer(const std::string& name,
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (name.empty())
+    if (!m_enabled || name.empty())
         return false;
 
     if (playerGuid == 0)
@@ -264,5 +282,33 @@ extern "C"
 
 namespace
 {
-    ClasslessCommandScript sClasslessCommandScript;
+    class ClasslessWorldScript : public WorldScript
+    {
+    public:
+        ClasslessWorldScript() : WorldScript("ClasslessWorldScript") { }
+
+        void OnStartup() override
+        {
+            ClasslessManager::Instance().Initialize();
+        }
+    };
+
+
+
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddClasslessSystemScripts()
+{
+    new ClasslessCommandScript();
+    new ClasslessWorldScript();
 }

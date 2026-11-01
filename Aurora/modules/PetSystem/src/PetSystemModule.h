@@ -20,7 +20,14 @@ public:
     void SetPetStats(Player* p, uint32_t health, uint32_t mana);
     void OnPlayerLogin(Player* p);
     void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    uint32_t DefaultPetLevel() const { return m_defaultPetLevel; }
+
+private:
+    bool m_enabled = true;
+    uint32_t m_defaultPetLevel = {};
 };
+
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializePetSystemModule();

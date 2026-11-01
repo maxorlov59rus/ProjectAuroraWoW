@@ -50,16 +50,24 @@ AC копируются скриптом миграции. Он идемпоте
 python scripts\migrate_to_ac.py
 ```
 
-Скрипт делает четыре вещи:
+Скрипт делает шесть вещей:
 
 1. Прописывает `add_subdirectory(AuroraCore)` в `src/server/CMakeLists.txt`
    AC и добавляет `AuroraCore` в `game-interface`, чтобы include-пути
    core-слоя были видны всем модулям.
 2. Копирует `Aurora/src/Aurora/*` в `src/server/AuroraCore/` AC.
-3. Копирует `Aurora/modules/*/src/*` в `AC/modules/*/src/`, дописывая каждому
-   `.cpp` точку входа `Add<Name>Scripts()`, которую вызывает генерируемый
-   AC `ModulesLoader.cpp`.
+3. Копирует `Aurora/modules/*/src/*` и `Aurora/modules/*/conf/*.conf.dist` в
+   `AC/modules/*/`, дописывая каждому `.cpp` точку входа `Add<Name>Scripts()`,
+   которую вызывает генерируемый AC `ModulesLoader.cpp`.
 4. Пишет `AC/conf/config.cmake` со списком включённых/отключённых модулей.
+5. Создаёт рабочие конфиги рядом с бинарниками: `configs/worldserver.conf`,
+   `configs/authserver.conf` (из `.dist` AC) и `configs/modules/aurora_*.conf`
+   (из `conf/*.conf.dist` модулей). Существующие файлы не перезаписываются —
+   в них могут быть локальные настройки.
+6. Кладёт рядом с `worldserver.exe` runtime-библиотеки, которых нет в `PATH`:
+   `libmysql.dll`, `libcrypto-*.dll`, `libssl-*.dll` и провайдер `legacy.dll`.
+   Без последнего AC падает assert'ом `Not found 'legacy.dll'` ещё до вывода
+   лога.
 
 Файлы AC остаются вне git-репозитория Aurora — единственным источником истины
 для кода модулей считается Aurora-репозиторий.
@@ -115,11 +123,43 @@ scripts\run_world.bat
 azerothcore-wotlk/build/bin/RelWithDebInfo/
 ├── authserver.exe
 ├── worldserver.exe
+├── configs/
+│   ├── worldserver.conf, authserver.conf
+│   └── modules/aurora_*.conf   (по одному на модуль)
+├── libmysql.dll, libcrypto-*.dll, libssl-*.dll, legacy.dll
 └── skills/                 (dynamic-модули, если MODULES=dynamic)
 ```
 
 При `MODULES=static` (значение по умолчанию в `conf/config.cmake`) код
-модулей уже встроен в `worldserver.exe`, отдельных `.dll` не требуется.
+модулей уже встроен в `worldserver.exe`, отдельных `.dll` модулей не требуется.
+Перечисленные выше библиотеки — сторонние runtime-зависимости самого ядра
+(MySQL client и OpenSSL), их копирует шаг 6 скрипта миграции.
+
+## Конфигурация модулей
+
+Каждый модуль описывает настройки в `modules/<Name>/conf/aurora_*.conf.dist`
+по формату AC: `Key = value`, `#` — комментарий. Опции называются
+`Aurora.<Module>.*`, чтобы модули не перекрывали настройки друг друга.
+
+Рабочие файлы читаются из `configs/modules/<имя>.conf`; их список
+(`CONFIG_FILE_LIST`) формируется glob'ом по `conf/*.conf.dist` **во время
+CMake-конфигурации**, поэтому после добавления нового `.conf.dist` нужно:
+
+```bat
+python scripts\migrate_to_ac.py
+cmake -S E:\azerothcore-wotlk-master -B E:\azerothcore-wotlk-master\build
+```
+
+Модули читают свои опции в `WorldScript::OnStartup` — этот хук выполняется уже
+после `sConfigMgr->LoadModulesConfigs()`, в отличие от статических
+инициализаторов. Проверить, что конфиги подхватились, можно без БД:
+
+```bat
+worldserver.exe --dry-run
+```
+
+в выводе должен быть блок `Loading Modules Configuration...` со списком
+`aurora_*.conf`.
 
 ## Частые проблемы
 
@@ -137,3 +177,13 @@ azerothcore-wotlk/build/bin/RelWithDebInfo/
 **`override` не переопределяет метод базового класса** — сигнатура хука
 разошлась с текущей версией AC. Актуальные сигнатуры смотрите в
 `src/server/game/Scripting/ScriptDefines/<Kind>Script.h`.
+
+**ACCESS_VIOLATION в `ScriptRegistry<T>::_checkMemory` при запуске** — скрипт
+создан файловым объектом (`namespace { FooScript sFoo; }`). Такая регистрация
+выполняется в `_initterm`, до конструктора статиков реестра. Скрипты нужно
+создавать внутри `Add<Name>Scripts()` (`new FooScript();`) — её вызывает
+`sScriptMgr->Initialize()`. Перевод существующих модулей:
+`python scripts\convert_script_registration.py`.
+
+**`Not found 'legacy.dll'`** — рядом с `worldserver.exe` нет провайдера
+`legacy.dll` и библиотек OpenSSL/MySQL. Их раскладывает шаг 6 `migrate_to_ac.py`.

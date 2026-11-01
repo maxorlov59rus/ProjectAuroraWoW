@@ -14,9 +14,11 @@
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -38,10 +40,29 @@ ZombieApocalypseManager::~ZombieApocalypseManager()
 {
 }
 
+bool ZombieApocalypseManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.ZombieApocalypse.Enabled", "ZombieApocalypse");
+    m_defaultDurationMinutes = Aurora::Settings::Get<uint32_t>(
+        "Aurora.ZombieApocalypse.DurationMinutes", 30, "ZombieApocalypse");
+    m_defaultMaxZombies = Aurora::Settings::Get<uint32_t>(
+        "Aurora.ZombieApocalypse.MaxZombies", 50, "ZombieApocalypse");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("ZombieApocalypse", "ZombieApocalypse disabled by Aurora.ZombieApocalypse.Enabled");
+        return true;
+    }
+
+    LOG_INFO("ZombieApocalypse", "ZombieApocalypse module initialized (default: {} min, {} zombies)",
+        m_defaultDurationMinutes, m_defaultMaxZombies);
+    return true;
+}
+
 bool ZombieApocalypseManager::StartEvent(uint32_t durationMinutes, uint32_t maxZombies)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_eventActive)
+    if (!m_enabled || m_eventActive)
         return false;
 
     m_durationMinutes = durationMinutes;
@@ -197,6 +218,12 @@ private:
     // ---------- .zombie start <minutes> [maxZombies] ----------
     static bool HandleStartEventCommand(ChatHandler* handler, uint32 durationMinutes, uint32 maxZombies)
     {
+        if (!ZombieApocalypseManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("ZombieApocalypse is disabled by configuration.");
+            return true;
+        }
+
         if (ZombieApocalypseManager::Instance().StartEvent(durationMinutes, maxZombies))
             handler->PSendSysMessage("Zombie apocalypse started for {} minutes, max {} zombies.",
                 durationMinutes, maxZombies);
@@ -281,5 +308,33 @@ extern "C"
 
 namespace
 {
-    ZombieApocalypseCommandScript sZombieApocalypseCommandScript;
+    class ZombieApocalypseWorldScript : public WorldScript
+    {
+    public:
+        ZombieApocalypseWorldScript() : WorldScript("ZombieApocalypseWorldScript") { }
+
+        void OnStartup() override
+        {
+            ZombieApocalypseManager::Instance().Initialize();
+        }
+    };
+
+
+
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddZombieApocalypseScripts()
+{
+    new ZombieApocalypseCommandScript();
+    new ZombieApocalypseWorldScript();
 }

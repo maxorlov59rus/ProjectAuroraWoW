@@ -3,17 +3,24 @@
  *
  * Arena team helpers: queueing, ranks and per-team statistics.
  *
- * This module registers one AzerothCore script:
+ * This module registers two AzerothCore scripts:
  *   - ArenaSystemCommandScript : CommandScript (chat commands)
+ *   - ArenaSystemWorldScript    : WorldScript  (reads the module options at startup)
+ *
+ * Settings live in configs/modules/aurora_arena.conf (see ArenaSystem/conf/aurora_arena.conf.dist). They
+ * are read in WorldScript::OnStartup, not in a static initializer, because the
+ * core only loads the module config files after its own one.
  */
 
 #include "ArenaSystemModule.h"
 
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
 
 #include <ScriptMgr.h>
 #include <CommandScript.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 #include <ChatCommandTags.h>
@@ -35,20 +42,34 @@ ArenaSystemManager& ArenaSystemManager::Instance()
 
 bool ArenaSystemManager::Initialize()
 {
+    m_enabled = Aurora::Settings::Enabled("Aurora.Arena.Enabled", "ArenaSystem");
+    m_ratedMinLevel = Aurora::Settings::Get<uint32_t>("Aurora.Arena.RatedMinimumLevel", 80, "ArenaSystem");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("ArenaSystem", "ArenaSystem disabled by Aurora.Arena.Enabled");
+        return true;
+    }
+
     LOG_INFO("ArenaSystem", "ArenaSystem module initialized");
     return true;
 }
 
+bool ArenaSystemManager::IsEnabled() const
+{
+    return m_enabled;
+}
+
 void ArenaSystemManager::OnPlayerLogin(Player* p)
 {
-    if (!p)
+    if (!p || !m_enabled)
         return;
     LOG_INFO("ArenaSystem", "Player {} logged in — arena system available", p->GetName());
 }
 
 void ArenaSystemManager::OnPlayerLevelUp(Player* p)
 {
-    if (!p)
+    if (!p || !m_enabled)
         return;
     LOG_INFO("ArenaSystem", "Player {} leveled up", p->GetName());
 }
@@ -86,6 +107,12 @@ private:
     // ---------- .arena queue ----------
     static bool HandleArenaQueueCommand(ChatHandler* handler, std::string_view /*args*/)
     {
+        if (!ArenaSystemManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("ArenaSystem is disabled by configuration.");
+            return true;
+        }
+
         handler->SendSysMessage("Arena queue command received.");
         return true;
     }
@@ -93,6 +120,12 @@ private:
     // ---------- .arena rank ----------
     static bool HandleArenaRankCommand(ChatHandler* handler, std::string_view /*args*/)
     {
+        if (!ArenaSystemManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("ArenaSystem is disabled by configuration.");
+            return true;
+        }
+
         handler->SendSysMessage("Arena rank command received.");
         return true;
     }
@@ -100,22 +133,42 @@ private:
     // ---------- .arena stats ----------
     static bool HandleArenaStatsCommand(ChatHandler* handler, std::string_view /*args*/)
     {
-        handler->SendSysMessage("Arena stats command received.");
+        if (!ArenaSystemManager::Instance().IsEnabled())
+        {
+            handler->SendSysMessage("ArenaSystem is disabled by configuration.");
+            return true;
+        }
+
+        handler->PSendSysMessage("Rated arena requires level {}.", ArenaSystemManager::Instance().RatedMinLevel());
         return true;
     }
 
 };
 
 // ============================================================================
-// Module entry points
+// WorldScript
+// ============================================================================
+
+class ArenaSystemWorldScript : public WorldScript
+{
+public:
+    ArenaSystemWorldScript() : WorldScript("ArenaSystemWorldScript") { }
+
+    void OnStartup() override
+    {
+        ArenaSystemManager::Instance().Initialize();
+    }
+};
+
+// ============================================================================
+// Module entry points (for the old .dll loader)
 // ============================================================================
 
 extern "C"
 {
     __declspec(dllexport) void __stdcall InitializeArenaSystemModule()
     {
-        ArenaSystemManager::Instance().Initialize();
-        LOG_INFO("ArenaSystem", "ArenaSystem module initialized (scripts auto-register)");
+        LOG_INFO("ArenaSystem", "ArenaSystem module loaded (scripts auto-register)");
     }
 
     __declspec(dllexport) void __stdcall FinalizeArenaSystemModule()
@@ -124,7 +177,18 @@ extern "C"
     }
 }
 
-namespace
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddArenaSystemScripts()
 {
-    ArenaSystemCommandScript sArenaSystemCommandScript;
+    new ArenaSystemCommandScript();
+    new ArenaSystemWorldScript();
 }

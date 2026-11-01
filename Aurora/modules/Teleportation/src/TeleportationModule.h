@@ -56,12 +56,15 @@ public:
     // Проверить, существует ли локация
     bool LocationExists(const std::string& name) const;
 
+    bool IsEnabled() const { return m_enabled; }
+
 private:
     TeleportationManager();
     ~TeleportationManager();
 
     std::map<std::string, TeleportLocation> m_locations;
     mutable std::mutex m_mutex;
+    bool m_enabled = true;
 };
 
 // ---------- Module registration ----------

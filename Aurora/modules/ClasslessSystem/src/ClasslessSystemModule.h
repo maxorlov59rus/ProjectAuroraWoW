@@ -73,7 +73,14 @@ public:
     // Add skill points (e.g., from level-up).
     bool AddSkillPoints(uint64_t guid, uint32_t points);
 
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+    uint32_t PointsPerLevel() const { return m_pointsPerLevel; }
+
 private:
+    bool m_enabled = true;
+    uint32_t m_pointsPerLevel = 2;
+
     std::map<uint64_t, ClasslessInfo> m_players;
     uint64_t m_nextGuid = 1;
     mutable std::mutex m_mutex;

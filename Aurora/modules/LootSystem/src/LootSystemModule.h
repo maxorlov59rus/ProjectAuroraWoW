@@ -16,7 +16,14 @@ public:
     bool Initialize();
     void OnPlayerLogin(Player* p);
     void OnPlayerLevelUp(Player* p);
+    bool IsEnabled() const;
+    float DropRate() const { return m_dropRate; }
+
+private:
+    bool m_enabled = true;
+    float m_dropRate = {};
 };
+
 
 extern "C" {
     __declspec(dllexport) void __stdcall InitializeLootSystemModule();

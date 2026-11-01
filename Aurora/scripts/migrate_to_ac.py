@@ -3,6 +3,7 @@ Migration: Aurora -> AzerothCore module mechanism.
 
 Idempotent. Run: python build/_migrate/migrate.py
 """
+import shutil
 import sys
 from pathlib import Path
 
@@ -56,7 +57,7 @@ def patch(path: Path, old: str, new: str) -> None:
 
 
 def step_hook_into_ac_build():
-    print("[1/4] Hooking AuroraCore into the AzerothCore build")
+    print("[1/6] Hooking AuroraCore into the AzerothCore build")
 
     patch(
         AC / "src" / "server" / "CMakeLists.txt",
@@ -121,7 +122,7 @@ void %s()
 
 
 def step_copy_modules():
-    print("[2/4] Copying Aurora modules into AC modules/")
+    print("[2/6] Copying Aurora modules into AC modules/")
 
     for mod in sorted(p for p in (AURORA / "modules").iterdir() if p.is_dir()):
         dst = AC / "modules" / mod.name / "src"
@@ -137,6 +138,16 @@ def step_copy_modules():
             write(dst / f.name, adapt_to_ac(text))
             copied.append(f.name)
 
+        # Config templates go along with the sources: AC's modules/CMakeLists
+        # globs <module>/conf/*.conf.dist at configure time to build
+        # CONFIG_FILE_LIST, which is what makes worldserver load the file.
+        conf_src = mod / "conf"
+        if conf_src.is_dir():
+            conf_dst = AC / "modules" / mod.name / "conf"
+            conf_dst.mkdir(parents=True, exist_ok=True)
+            for f in sorted(conf_src.glob("*.conf.dist")):
+                write(conf_dst / f.name, read(f))
+
         # NOTE: no CMakeLists.txt on purpose. AC's module loader collects
         # modules/<name>/src/*.{cpp,h} itself (static linkage), and the root
         # CMakeLists would add_subdirectory() a module CMakeLists.txt and
@@ -145,7 +156,7 @@ def step_copy_modules():
 
 
 def step_module_selection():
-    print("[3/4] Writing AC conf/config.cmake (module selection)")
+    print("[3/6] Writing AC conf/config.cmake (module selection)")
 
     mods = sorted(p.name for p in (AURORA / "modules").iterdir() if p.is_dir())
     disabled = [m for m in mods if m not in ENABLED]
@@ -184,11 +195,124 @@ def step_module_selection():
           % (",".join(ENABLED), len(disabled)))
 
 
+def step_write_configs():
+    """Creates the working .conf files next to the binaries.
+
+    AzerothCore only ships *.conf.dist: worldserver refuses to start without
+    configs/worldserver.conf, and it looks for the module options in
+    configs/modules/<name>.conf. CopyModuleConfig() copies the module files
+    verbatim (keeping the .dist suffix), so the real files are created here.
+    Existing files are never overwritten - they hold local settings.
+    """
+    print("[4/6] Creating working config files in the build tree")
+
+    bins = sorted(p for p in (AC / "build" / "bin").iterdir() if p.is_dir())
+    if not bins:
+        print("  WARNING: no build/bin/<config> directory yet - run cmake --build first")
+        return
+
+    created = skipped = 0
+    for cfg_dir in bins:
+        conf_dir = cfg_dir / "configs"
+        if not conf_dir.is_dir():
+            continue
+
+        todo = []
+        for app in ("worldserver", "authserver"):
+            dist = conf_dir / f"{app}.conf.dist"
+            if dist.is_file():
+                todo.append((dist, conf_dir / f"{app}.conf"))
+
+        modules_conf = conf_dir / "modules"
+        modules_conf.mkdir(exist_ok=True)
+        for dist in sorted((AURORA / "modules").glob("*/conf/*.conf.dist")):
+            todo.append((dist, modules_conf / dist.name[: -len(".dist")]))
+
+        for src, dst in todo:
+            if dst.exists():
+                skipped += 1
+                continue
+            write(dst, read(src))
+            created += 1
+            print(f"  created: {dst.relative_to(cfg_dir)}")
+
+    print(f"  configs: {created} created, {skipped} already present")
+
+
+def step_copy_runtime_dlls():
+    """Puts the runtime DLLs worldserver loads next to its own exe.
+
+    Linking the modules statically removes the script DLLs, but three load-time
+    dependencies stay dynamic and are not on PATH: libmysql.dll (the client
+    library MySQL's server package ships) and, for OpenSSL 3+/4, libcrypto plus
+    the 'legacy' provider OpenSSLCrypto::SetupLibrariesForWindows loads
+    explicitly - without it worldserver asserts before it can log anything.
+    Files already in place are left untouched so a manual copy wins.
+    """
+    print("[5/6] Copying runtime DLLs into build/bin/<config>")
+
+    candidates = [
+        ("libmysql.dll", [
+            AC / "env" / "server" / "bin" / "libmysql.dll",
+            Path(r"C:/Program Files/MySQL/MySQL Server 8.0/lib/libmysql.dll"),
+            Path(r"C:/Program Files/MySQL/MySQL Server 8.4/lib/libmysql.dll"),
+        ]),
+        # OpenSSL names the crypto/ssl libraries after their ABI (libcrypto-3,
+        # -4, ...), so those two are matched by pattern inside a directory.
+        ("libcrypto*x64.dll", [Path(r"C:/Program Files/OpenSSL-Win64/bin")]),
+        ("libssl*x64.dll", [Path(r"C:/Program Files/OpenSSL-Win64/bin")]),
+        ("legacy.dll", [Path(r"C:/Program Files/OpenSSL-Win64/bin")]),
+    ]
+
+    bins = sorted(p for p in (AC / "build" / "bin").iterdir() if p.is_dir()) \
+        if (AC / "build" / "bin").is_dir() else []
+    if not bins:
+        print("  WARNING: no build/bin/<config> directory yet - run cmake --build first")
+        return
+
+    for cfg_dir in bins:
+        for name, sources in candidates:
+            found = next((s for s in sources if s.is_file()), None)
+            if found is None:
+                for directory in sources:
+                    if directory.is_dir():
+                        matches = sorted(directory.glob(name))
+                        if matches:
+                            found = matches[0]
+                            break
+
+            dst = cfg_dir / found.name if found else None
+            if found is None:
+                print(f"  WARNING: {name} not found - worldserver cannot start without it")
+                continue
+            if dst.exists():
+                continue
+
+            shutil.copy2(found, dst)
+            print(f"  copied: {found.name} ({cfg_dir.name})")
+
+
 def step_check_auroracore():
-    print("[4/4] Checking AuroraCore placement")
+    print("[6/6] Syncing AuroraCore into AC src/server/AuroraCore")
+
     core = AC / "src" / "server" / "AuroraCore"
+    core.mkdir(parents=True, exist_ok=True)
+
+    # Sources are authored under Aurora/src/Aurora; the AC tree keeps a copy so
+    # that AC's own CMakeLists (which resolves paths against CMAKE_SOURCE_DIR)
+    # can build it. The CMakeLists.txt in AC is hand-maintained (PUBLIC include
+    # dir) and is deliberately not overwritten.
+    copied = 0
+    for f in sorted((AURORA / "src" / "Aurora").iterdir()):
+        if f.suffix not in (".cpp", ".h"):
+            continue
+        dst = core / f.name
+        if not dst.exists() or read(dst) != read(f):
+            write(dst, read(f))
+            copied += 1
+    print("  %s: %d file(s) refreshed" % (core, copied))
+
     files = sorted(f.name for f in core.iterdir())
-    print("  %s: %d files" % (core, len(files)))
     if "CMakeLists.txt" not in files:
         print("  ERROR: AuroraCore/CMakeLists.txt missing")
         sys.exit(1)
@@ -201,5 +325,7 @@ if __name__ == "__main__":
     step_hook_into_ac_build()
     step_copy_modules()
     step_module_selection()
+    step_write_configs()
+    step_copy_runtime_dlls()
     step_check_auroracore()
     print("done")

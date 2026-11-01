@@ -1,0 +1,19 @@
+# ============================================================================
+# AuroraGameModes module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_gamemodes.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.GameModes.Enabled
+#        Load the Aurora game-mode scenarios at startup.
+#        Default:     1
+
+Aurora.GameModes.Enabled = 1
+
+#    Aurora.GameModes.Default
+#        Scenario started automatically at startup. Known ids: standard, rest, test.
+#        Default:     "standard"
+
+Aurora.GameModes.Default = "standard"

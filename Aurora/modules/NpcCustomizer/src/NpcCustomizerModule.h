@@ -37,9 +37,13 @@ public:
     void SetNpcFlags(uint64_t guid, uint32_t flags);
     std::vector<uint64_t> GetSpawnedNpcs() const;
 
+    bool Initialize();
+    bool IsEnabled() const { return m_enabled; }
+
 private:
     NpcCustomizerManager();
     ~NpcCustomizerManager();
+    bool m_enabled = true;
     uint64_t m_nextGuid = 1;
     std::vector<uint64_t> m_spawnedNpcs;
     mutable std::mutex m_mutex;

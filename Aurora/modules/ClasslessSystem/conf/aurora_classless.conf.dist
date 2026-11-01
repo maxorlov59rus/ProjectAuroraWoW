@@ -1,0 +1,19 @@
+# ============================================================================
+# ClasslessSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_classless.conf after worldserver.conf.
+# Options are read by the module through sConfigMgr->GetOption(), so they can
+# be changed at runtime with `.reload config` unless noted otherwise.
+# ============================================================================
+
+#    Aurora.Classless.Enabled
+#        Enable the classless registry and the .classless commands.
+#        Default:     1
+
+Aurora.Classless.Enabled = 1
+
+#    Aurora.Classless.PointsPerLevel
+#        Skill points granted to a classless character for every level gained.
+#        Default:     2
+
+Aurora.Classless.PointsPerLevel = 2

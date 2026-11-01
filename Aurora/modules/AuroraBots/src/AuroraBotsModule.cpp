@@ -1,7 +1,10 @@
 #include "AuroraBotsModule.h"
 #include <AuroraPCH.h>
 #include <AuroraLogging.h>
+#include <AuroraModuleSettings.h>
+
 #include <ScriptMgr.h>
+#include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
 
@@ -9,12 +12,30 @@
 // AuroraBotManager
 // ============================================================================
 
+bool AuroraBotManager::Initialize()
+{
+    m_enabled = Aurora::Settings::Enabled("Aurora.Bots.Enabled", "AuroraBots");
+    m_maxBots = Aurora::Settings::Get<uint32_t>("Aurora.Bots.MaxBots", 20, "AuroraBots");
+
+    if (!m_enabled)
+    {
+        LOG_INFO("AuroraBots", "AuroraBots disabled by Aurora.Bots.Enabled");
+        return true;
+    }
+
+    LOG_INFO("AuroraBots", "AuroraBots module initialized (max {} bots)", m_maxBots);
+    return true;
+}
+
 uint64_t AuroraBotManager::CreateBot(const std::string& name,
                                      const std::string& className,
                                      const std::string& race,
                                      const std::string& luaScript)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (!m_enabled || m_bots.size() >= m_maxBots)
+        return 0;
 
     BotInfo info;
     info.name = name;
@@ -129,6 +150,22 @@ bool HandleBotAiCommand(ChatHandler* handler, const std::string& args)
 // Module entry points
 // ============================================================================
 
+namespace
+{
+    class AuroraBotsWorldScript : public WorldScript
+    {
+    public:
+        AuroraBotsWorldScript() : WorldScript("AuroraBotsWorldScript") { }
+
+        void OnStartup() override
+        {
+            AuroraBotManager::Instance().Initialize();
+        }
+    };
+
+
+}
+
 extern "C"
 {
     __declspec(dllexport) void __stdcall InitializeAuroraBotsModule()
@@ -141,4 +178,19 @@ extern "C"
     {
         LOG_INFO("AuroraBots", "AuroraBots module finalized");
     }
+}
+
+// ============================================================================
+// AzerothCore module loader entry point.
+//
+// The generated ModulesLoader.cpp calls this from sScriptMgr->Initialize(),
+// once worldserver.conf and configs/modules/*.conf are loaded and the script
+// registries are usable. Creating the scripts here, rather than through
+// file-scope objects, keeps registration out of static initialization and is
+// what lets WorldScript::OnStartup read the module options.
+// ============================================================================
+
+void AddAuroraBotsScripts()
+{
+    new AuroraBotsWorldScript();
 }

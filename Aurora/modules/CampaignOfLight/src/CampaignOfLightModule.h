@@ -129,7 +129,10 @@ public:
     bool AddShop(CampaignShop const& shop);
     bool ShowShop(Player* player, uint32 vendorEntry);
 
+    bool IsEnabled() const { return m_enabled; }
+
 private:
+    bool m_enabled = true;
     CampaignOfLightManager() = default;
     ~CampaignOfLightManager() = default;
 
