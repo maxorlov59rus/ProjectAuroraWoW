@@ -1,15 +1,15 @@
-/**
- * AuroraCore - Aurora custom C++ layer
- *
- * Builds the Aurora custom layer that hooks into AzerothCore. This library
- * is linked by the Aurora modules (AuroraSkills, AuroraSkins,
- * AuroraGameModes) and by the server launcher.
- *
- * Notes:
- *  - AuroraCore deliberately does not depend on AzerothCoreLib directly;
- *    it only needs C++17 and the project-level header locations. The
- *    consumers (modules, launcher) add AzerothCoreLib as needed.
- */
+#
+# AuroraCore - Aurora custom C++ layer
+#
+# Builds the Aurora custom layer that hooks into AzerothCore. This library
+# is linked by the Aurora modules (AuroraSkills, AuroraSkins,
+# AuroraGameModes) and by the server launcher.
+#
+# Notes:
+#  - AuroraCore deliberately does not depend on AzerothCoreLib directly;
+#    it only needs C++17 and the project-level header locations. The
+#    consumers (modules, launcher) add AzerothCoreLib as needed.
+#
 
 set(AURORA_CORE_SOURCES
     AuroraPCH.cpp
