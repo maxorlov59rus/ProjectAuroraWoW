@@ -8,7 +8,7 @@
 #
 
 set(CLASSLESSYSTEM_SOURCES
-    ClasslessSystemModule.cpp
+    src/ClasslessSystemModule.cpp
 )
 
 # 1. Add Aurora core layer include directory so this module can include

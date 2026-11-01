@@ -7,7 +7,7 @@
 #
 
 set(AURABOTS_SOURCES
-    AuroraBotsModule.cpp
+    src/AuroraBotsModule.cpp
 )
 
 # 1. Add Aurora core layer include directory so this module can include

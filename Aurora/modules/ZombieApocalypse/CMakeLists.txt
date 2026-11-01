@@ -7,7 +7,7 @@
 #
 
 set(ZOMBIEAPP_SOURCES
-    ZombieApocalypseModule.cpp
+    src/ZombieApocalypseModule.cpp
 )
 
 # 1. Add Aurora core layer include directory so this module can include
