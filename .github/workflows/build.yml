@@ -1,0 +1,36 @@
+name: Windows Build CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.28'
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    
+    - name: Configure
+      run: cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    
+    - name: Build
+      run: cmake --build build --config RelWithDebInfo --parallel 4
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aurora-server-build
+        path: build/bin/RelWithDebInfo/
