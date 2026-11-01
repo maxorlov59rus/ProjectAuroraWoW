@@ -6,7 +6,7 @@
 
 setlocal
 
-set ROOT=%~dp0..
+set ROOT=%~dp0..\..
 set BUILD=build
 set CONFIG=RelWithDebInfo
 set GEN="Visual Studio 17 2022"
@@ -30,7 +30,7 @@ if errorlevel 1 (
 )
 
 echo [1/4] Configuring CMake...
-cmake -S "%ROOT%" -B "%ROOT%\%BUILD%" -G %GEN% -DCMAKE_BUILD_TYPE=%CONFIG%
+cmake -S "%ROOT%\Aurora" -B "%ROOT%\%BUILD%" -G %GEN% -DCMAKE_BUILD_TYPE=%CONFIG%
 if errorlevel 1 (
     echo [ERROR] Configure failed
     exit /b 1
