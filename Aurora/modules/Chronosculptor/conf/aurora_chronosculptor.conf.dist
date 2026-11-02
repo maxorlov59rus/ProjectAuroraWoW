@@ -1,0 +1,43 @@
+# ============================================================================
+# Chronosculptor module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_chronosculptor.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.Chronosculptor.Enabled
+#        Enable the Chronosculptor echo recorder (.chrono commands).
+#        Default:     1
+
+Aurora.Chronosculptor.Enabled = 1
+
+#    Aurora.Chronosculptor.MaxEchoes
+#        Number of player echoes that may exist at once. 0 disables recording.
+#        Default:     2
+
+Aurora.Chronosculptor.MaxEchoes = 2
+
+#    Aurora.Chronosculptor.EchoLifetimeSecs
+#        How long an echo lives after it is spawned.
+#        Default:     30
+
+Aurora.Chronosculptor.EchoLifetimeSecs = 30
+
+#    Aurora.Chronosculptor.RecordDurationMs
+#        Length of the recording window in milliseconds (3 seconds = 3000).
+#        Default:     3000
+
+Aurora.Chronosculptor.RecordDurationMs = 3000
+
+#    Aurora.Chronosculptor.EchoDelayMs
+#        Delay between the end of the recording and the echo appearing.
+#        Default:     5000
+
+Aurora.Chronosculptor.EchoDelayMs = 5000
+
+#    Aurora.Chronosculptor.EchoEntry
+#        Creature entry used for the spawned echo. 0 keeps the module in
+#        "virtual" mode until the matching creature is imported.
+#        Default:     0
+
+Aurora.Chronosculptor.EchoEntry = 0

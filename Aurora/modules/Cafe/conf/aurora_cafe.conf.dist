@@ -1,0 +1,31 @@
+# ============================================================================
+# Cafe of Broken Hearts module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_cafe.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.Cafe.Enabled
+#        Enable the Cafe of Broken Hearts (.cafe commands).
+#        Default:     1
+
+Aurora.Cafe.Enabled = 1
+
+#    Aurora.Cafe.MissThreshold
+#        Number of failed drops (boss killed, item missing) in one raid/slot
+#        before an "essence of failure" is earned.
+#        Default:     10
+
+Aurora.Cafe.MissThreshold = 10
+
+#    Aurora.Cafe.AmuletCost
+#        Essences an "Amulet of Random Hope" costs.
+#        Default:     3
+
+Aurora.Cafe.AmuletCost = 3
+
+#    Aurora.Cafe.AmuletDurationSecs
+#        How long the random stat granted by an amulet lasts, in seconds.
+#        Default:     3600
+
+Aurora.Cafe.AmuletDurationSecs = 3600
