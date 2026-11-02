@@ -1,0 +1,64 @@
+# ============================================================================
+# Puppet Theatre module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_puppettheatre.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.PuppetTheatre.Enabled
+#        Enable the Puppet Theatre (.puppet commands and summon hooks).
+#        Default:     1
+
+Aurora.PuppetTheatre.Enabled = 1
+
+#    Aurora.PuppetTheatre.PuppetEntry
+#        Creature entry of the marionette. 0 = virtual until the creature SQL
+#        ships (the module still exercises summon/order state).
+#        Default:     0
+
+Aurora.PuppetTheatre.PuppetEntry = 0
+
+#    Aurora.PuppetTheatre.BrokenDollItem
+#        Item id of the broken doll required to awaken a marionette.
+#        0 = no item requirement.
+#        Default:     0
+
+Aurora.PuppetTheatre.BrokenDollItem = 0
+
+#    Aurora.PuppetTheatre.ChampionEntry
+#        Creature entry of the Stormwind champion fought by the marionette.
+#        0 = virtual until the creature SQL ships.
+#        Default:     0
+
+Aurora.PuppetTheatre.ChampionEntry = 0
+
+#    Aurora.PuppetTheatre.ChestItem
+#        Item id granted from the champion's chest.
+#        0 = virtual until the item SQL ships.
+#        Default:     0
+
+Aurora.PuppetTheatre.ChestItem = 0
+
+#    Aurora.PuppetTheatre.StrikeSpell
+#        Spell id of the marionette's strike order.
+#        Default:     0
+
+Aurora.PuppetTheatre.StrikeSpell = 0
+
+#    Aurora.PuppetTheatre.DodgeSpell
+#        Spell id of the marionette's dodge order.
+#        Default:     0
+
+Aurora.PuppetTheatre.DodgeSpell = 0
+
+#    Aurora.PuppetTheatre.TauntSpell
+#        Spell id of the marionette's taunt order.
+#        Default:     0
+
+Aurora.PuppetTheatre.TauntSpell = 0
+
+#    Aurora.PuppetTheatre.ChargeSpell
+#        Spell id of the marionette's charge order.
+#        Default:     0
+
+Aurora.PuppetTheatre.ChargeSpell = 0

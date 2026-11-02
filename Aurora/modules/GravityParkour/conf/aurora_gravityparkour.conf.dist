@@ -1,0 +1,44 @@
+# ============================================================================
+# Gravity Parkour module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_gravityparkour.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.GravityParkour.Enabled
+#        Enable the hidden gravity parkour (.parkour commands and phase check).
+#        Default:     1
+
+Aurora.GravityParkour.Enabled = 1
+
+#    Aurora.GravityParkour.ZoneId
+#        Zone where the hidden phase triggers. 1 = Darnassus.
+#        Default:     1
+
+Aurora.GravityParkour.ZoneId = 1
+
+#    Aurora.GravityParkour.Hour
+#        Hour of the in-game day when the phase becomes reachable (0 = midnight).
+#        Default:     0
+
+Aurora.GravityParkour.Hour = 0
+
+#    Aurora.GravityParkour.PhaseMask
+#        Phase bit OR-ed into the player's phase mask when entering the hidden
+#        Celestial Gardens. The platforms live inside this phase.
+#        Default:     1
+
+Aurora.GravityParkour.PhaseMask = 1
+
+#    Aurora.GravityParkour.RequireLevitate
+#        Only allow the phase while the player is levitating.
+#        Default:     1
+
+Aurora.GravityParkour.RequireLevitate = 1
+
+#    Aurora.GravityParkour.WingsSpell
+#        Spell granted as the "moth wings" mount at the end of the course. 0
+#        keeps the grant virtual until the spell ships.
+#        Default:     0
+
+Aurora.GravityParkour.WingsSpell = 0
