@@ -18,10 +18,14 @@ public:
     void OnPlayerLevelUp(Player* p);
     bool IsEnabled() const;
     float DropRate() const { return m_dropRate; }
+    // Runtime override from .loot droprate; rejected above MaxDropRate().
+    bool SetDropRate(float rate);
+    float MaxDropRate() const { return m_maxDropRate; }
 
 private:
     bool m_enabled = true;
     float m_dropRate = {};
+    float m_maxDropRate = {};
 };
 
 

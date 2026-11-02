@@ -1,5 +1,5 @@
 /*
- * Economy module — implementation
+ * Economy module - implementation
  *
  * Custom economy hooks: auctions, currencies and exchanges.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// EconomyManager — implementation
+// EconomyManager - implementation
 // ============================================================================
 
 EconomyManager::EconomyManager() = default;
@@ -43,7 +43,7 @@ EconomyManager& EconomyManager::Instance()
 bool EconomyManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Economy.Enabled", "Economy");
-    m_auctionDepositPercent = Aurora::Settings::Get<uint32_t>("Aurora.Economy.AuctionDepositPercent", 5, "Economy");
+    m_auctionDepositPercent = Aurora::Settings::Bounded<uint32_t>("Aurora.Economy.AuctionDepositPercent", 5, 0, 100, "Economy");
 
     if (!m_enabled)
     {
@@ -51,7 +51,7 @@ bool EconomyManager::Initialize()
         return true;
     }
 
-    LOG_INFO("Economy", "Economy module initialized");
+    LOG_INFO("Economy", "Economy module initialized (auction deposit {} percent)", m_auctionDepositPercent);
     return true;
 }
 
@@ -64,7 +64,7 @@ void EconomyManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("Economy", "Player {} logged in — economy system available", p->GetName());
+    LOG_INFO("Economy", "Player {} logged in - economy system available", p->GetName());
 }
 
 void EconomyManager::OnPlayerLevelUp(Player* p)
@@ -73,7 +73,6 @@ void EconomyManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("Economy", "Player {} leveled up", p->GetName());
 }
-
 
 // ============================================================================
 // CommandScript
@@ -113,9 +112,13 @@ private:
             return true;
         }
 
-        handler->PSendSysMessage("Auction of bid {} needs a {} percent deposit.", bid, EconomyManager::Instance().AuctionDepositPercent());
+        uint32 const deposit = static_cast<uint32_t>(
+            static_cast<uint64_t>(bid) * EconomyManager::Instance().AuctionDepositPercent() / 100);
+
+        handler->PSendSysMessage("Auction of {} copper needs a {} copper deposit ({} percent).", bid, deposit, EconomyManager::Instance().AuctionDepositPercent());
         return true;
     }
+
 
     // ---------- .economy currency ----------
     static bool HandleCurrencyCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -129,6 +132,7 @@ private:
         handler->SendSysMessage("Currency command received.");
         return true;
     }
+
 
     // ---------- .economy exchange ----------
     static bool HandleExchangeCommand(ChatHandler* handler, std::string_view /*args*/)

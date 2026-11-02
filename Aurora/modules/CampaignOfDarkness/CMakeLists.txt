@@ -1,5 +1,5 @@
 #
-# CampaignOfDarkness module — loadable AzerothCore module
+# CampaignOfDarkness module - loadable AzerothCore module
 #
 # This module introduces a "Campaign of Darkness" system with:
 # - NPCs with custom dialogues
@@ -17,7 +17,7 @@ add_library(CampaignOfDarkness MODULE ${CAMPAIGNOFDARKNESS_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(CampaignOfDarkness PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

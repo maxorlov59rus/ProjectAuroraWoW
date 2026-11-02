@@ -1,5 +1,5 @@
 /*
- * QuestSystem module — implementation
+ * QuestSystem module - implementation
  *
  * Custom quest helpers: creation, inspection and completion.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// QuestSystemManager — implementation
+// QuestSystemManager - implementation
 // ============================================================================
 
 QuestSystemManager::QuestSystemManager() = default;
@@ -63,7 +63,7 @@ void QuestSystemManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("QuestSystem", "Player {} logged in — quest system available", p->GetName());
+    LOG_INFO("QuestSystem", "Player {} logged in - quest system available", p->GetName());
 }
 
 void QuestSystemManager::OnPlayerLevelUp(Player* p)
@@ -72,7 +72,6 @@ void QuestSystemManager::OnPlayerLevelUp(Player* p)
         return;
     LOG_INFO("QuestSystem", "Player {} leveled up", p->GetName());
 }
-
 
 // ============================================================================
 // CommandScript
@@ -116,6 +115,7 @@ private:
         return true;
     }
 
+
     // ---------- .questx info ----------
     static bool HandleQuestInfoCommand(ChatHandler* handler, std::string_view /*args*/)
     {
@@ -128,6 +128,7 @@ private:
         handler->SendSysMessage("Quest info command received.");
         return true;
     }
+
 
     // ---------- .questx complete ----------
     static bool HandleCompleteQuestCommand(ChatHandler* handler, std::string_view /*args*/)

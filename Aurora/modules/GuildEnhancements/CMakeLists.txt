@@ -1,5 +1,5 @@
 #
-# GuildEnhancements module — loadable AzerothCore module
+# GuildEnhancements module - loadable AzerothCore module
 #
 # This module provides guild bank, rank, and enhancement features.
 #
@@ -12,7 +12,7 @@ add_library(GuildEnhancements MODULE ${GUILDENHANCEMENTS_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(GuildEnhancements PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

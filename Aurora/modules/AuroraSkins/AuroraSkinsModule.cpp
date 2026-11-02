@@ -1,5 +1,5 @@
 /**
- * AuroraSkinsModule — loadable AzerothCore module
+ * AuroraSkinsModule - loadable AzerothCore module
  *
  * Entry point for the skins module. Registered through
  * RegisterAuroraSkins(), which the AzerothCore module loader calls when
@@ -78,13 +78,22 @@ namespace {
                 return;
             }
 
-            // The id is only reported for characters without an explicit
-            // skin, so it is validated here and a typo shows up at startup.
+            // The id is what GetSkinFor() reports for characters without an
+            // explicit skin, so the option is pushed into the layer instead of
+            // only being echoed to the log.
             std::string defaultSkin = Aurora::Settings::Get<std::string>(
                 "Aurora.Skins.Default", "default", "AuroraSkins");
 
+            if (defaultSkin.empty())
+            {
+                Logging::Warn("AuroraSkins", "Aurora.Skins.Default is empty, keeping 'default'");
+                defaultSkin = "default";
+            }
+
+            Skins::SetDefaultSkin(defaultSkin);
+
             Logging::Info("AuroraSkins", Acore::StringFormat(
-                "Skins module loaded (default skin '{}')", defaultSkin));
+                "Skins module loaded (default skin '{}')", Skins::GetDefaultSkin()));
             SkinsModule::Instance().Initialize();
         }
     };

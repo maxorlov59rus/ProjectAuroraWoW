@@ -1,5 +1,5 @@
 #
-# Economy module — loadable AzerothCore module
+# Economy module - loadable AzerothCore module
 #
 # This module provides auction house enhancements and currency systems.
 #
@@ -12,7 +12,7 @@ add_library(Economy MODULE ${ECONOMY_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(Economy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

@@ -2,18 +2,45 @@
 # AuroraBots module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_bots.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.Bots.Enabled
-#        Enable the bot registry and the .bot commands.
+#        Enable the bot registry; with 0 the registry refuses to create bots.
 #        Default:     1
 
 Aurora.Bots.Enabled = 1
 
 #    Aurora.Bots.MaxBots
-#        Maximum number of bots the registry accepts (0 = no bots).
+#        Number of bots the registry keeps at most (0 = registry stays empty).
 #        Default:     20
 
 Aurora.Bots.MaxBots = 20
+
+#    Aurora.Bots.AllowedClasses
+#        Comma separated class names a bot may be created with. An unknown or
+#        unlisted class makes the creation fail.
+#        Default:     "WARRIOR,PALADIN,HUNTER,ROGUE,PRIEST,DEATHKNIGHT,SHAMAN,MAGE,WARLOCK"
+
+Aurora.Bots.AllowedClasses = "WARRIOR,PALADIN,HUNTER,ROGUE,PRIEST,DEATHKNIGHT,SHAMAN,MAGE,WARLOCK"
+
+#    Aurora.Bots.AllowedRaces
+#        Comma separated race names a bot may be created with.
+#        Default:     "HUMAN,DRAENEI,NIGHT_ELF,GNOME,DWARF,ORC,UNDEAD,TAUREN,TROLL,BLOOD_ELF"
+
+Aurora.Bots.AllowedRaces = "HUMAN,DRAENEI,NIGHT_ELF,GNOME,DWARF,ORC,UNDEAD,TAUREN,TROLL,BLOOD_ELF"
+
+#    Aurora.Bots.DefaultScript
+#        Behaviour script given to a bot created without an explicit one.
+#        Empty means the bot is registered without a script.
+#        Default:     "scripts/bots/patrol.lua"
+
+Aurora.Bots.DefaultScript = "scripts/bots/patrol.lua"
+
+#    Aurora.Bots.StartRunning
+#        Mark newly created bots as running, i.e. their AI starts immediately.
+#        With 0 they are registered stopped and need `.botai <guid> start`.
+#        Default:     1
+
+Aurora.Bots.StartRunning = 1

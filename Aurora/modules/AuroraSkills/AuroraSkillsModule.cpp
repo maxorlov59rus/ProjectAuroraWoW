@@ -1,5 +1,5 @@
 /**
- * AuroraSkillsModule — loadable AzerothCore module
+ * AuroraSkillsModule - loadable AzerothCore module
  *
  * Entry point for the skills module. Registered through
  * RegisterAuroraSkills(), which the AzerothCore module loader calls when
@@ -78,6 +78,13 @@ namespace {
                 return;
             }
 
+            // LogHooks makes the two Skills hooks write a line per call, so the
+            // option has to reach the layer that owns the hooks.
+            bool logHooks = Aurora::Settings::Enabled("Aurora.Skills.LogHooks", "AuroraSkills", false);
+            Skills::SetLogHooks(logHooks);
+
+            Logging::Info("AuroraSkills", Acore::StringFormat(
+                "Skills module loaded (hook logging: {})", logHooks ? "on" : "off"));
             SkillsModule::Instance().Initialize();
         }
     };

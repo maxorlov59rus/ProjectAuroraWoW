@@ -1,5 +1,5 @@
 #
-# NpcCustomizer module — loadable AzerothCore module
+# NpcCustomizer module - loadable AzerothCore module
 #
 # This module provides custom NPC spawning and configuration.
 # Create, modify, and manage NPCs dynamically.
@@ -13,7 +13,7 @@ add_library(NpcCustomizer MODULE ${NPCCUSTOMIZER_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(NpcCustomizer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

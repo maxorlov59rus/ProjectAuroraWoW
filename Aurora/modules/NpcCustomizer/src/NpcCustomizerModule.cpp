@@ -1,5 +1,5 @@
 /*
- * NpcCustomizer module — implementation
+ * NpcCustomizer module - implementation
  *
  * Runtime customization of spawned NPCs (name, level, health, faction, flags).
  *
@@ -23,9 +23,12 @@
 #include <Chat.h>
 #include <ChatCommandTags.h>
 #include <RBAC.h>
+#include <Util.h>
+
+#include <algorithm>
 
 // ============================================================================
-// NpcCustomizerManager — implementation
+// NpcCustomizerManager - implementation
 // ============================================================================
 
 NpcCustomizerManager::NpcCustomizerManager() = default;
@@ -35,6 +38,10 @@ NpcCustomizerManager::~NpcCustomizerManager() = default;
 bool NpcCustomizerManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.NpcCustomizer.Enabled", "NpcCustomizer");
+    m_maxSpawnedNpcs = Aurora::Settings::Get<uint32_t>("Aurora.NpcCustomizer.MaxSpawnedNpcs", 100, "NpcCustomizer");
+    m_maxLevel = Aurora::Settings::Bounded<uint32_t>("Aurora.NpcCustomizer.MaxLevel", 83, 1, 83, "NpcCustomizer");
+    m_maxNameLength = Aurora::Settings::Bounded<uint32_t>("Aurora.NpcCustomizer.MaxNameLength", 24, 1, 24, "NpcCustomizer");
+    m_defaultName = Aurora::Settings::Get<std::string>("Aurora.NpcCustomizer.DefaultName", "NPC", "NpcCustomizer");
 
     if (!m_enabled)
     {
@@ -42,22 +49,41 @@ bool NpcCustomizerManager::Initialize()
         return true;
     }
 
-    LOG_INFO("NpcCustomizer", "NpcCustomizer module initialized");
+    LOG_INFO("NpcCustomizer",
+        "NpcCustomizer module initialized ({} tracked NPCs, level up to {}, name up to {} characters, default name '{}')",
+        m_maxSpawnedNpcs, m_maxLevel, m_maxNameLength, m_defaultName);
     return true;
 }
 
-bool NpcCustomizerManager::SpawnNpc(uint32_t npcEntry, float x, float y, float z, uint32_t mapId, const std::string& name)
+bool NpcCustomizerManager::SpawnNpc(uint32_t npcEntry, float x, float y, float z, uint32_t mapId,
+                                    const std::string& name, uint64_t* outGuid)
 {
     if (!m_enabled)
         return false;
 
-    // TODO: create the real creature through the map spawn helper.
+    std::string const npcName = name.empty() ? m_defaultName : name;
+
+    // The client truncates overlong names silently, which reads as a bug; an
+    // explicit refusal tells the GM that MaxNameLength is what stopped it.
+    std::string lengthProbe = npcName;
+    if (utf8length(lengthProbe) > m_maxNameLength)
+        return false;
+
     std::lock_guard<std::mutex> lock(m_mutex);
+
+    // MaxSpawnedNpcs bounds the registry, not just this call, so the guard has to
+    // be here rather than in the command handler.
+    if (m_maxSpawnedNpcs && m_spawnedNpcs.size() >= m_maxSpawnedNpcs)
+        return false;
+
+    // TODO: create the real creature through the map spawn helper.
     uint64_t guid = m_nextGuid++;
     m_spawnedNpcs.push_back(guid);
+    if (outGuid)
+        *outGuid = guid;
 
     LOG_INFO("NpcCustomizer", "Spawned NPC {} (entry {}) at ({}, {}, {}) map {} as GUID {}",
-        name.empty() ? std::string("NPC") : name, npcEntry, x, y, z, mapId, guid);
+        npcName, npcEntry, x, y, z, mapId, guid);
     return true;
 }
 
@@ -73,14 +99,28 @@ bool NpcCustomizerManager::RemoveNpc(uint64_t guid)
     return true;
 }
 
-void NpcCustomizerManager::SetNpcName(uint64_t guid, const std::string& name)
+bool NpcCustomizerManager::SetNpcName(uint64_t guid, const std::string& name)
 {
-    LOG_INFO("NpcCustomizer", "Set NPC {} name to {}", guid, name);
+    std::string const trimmed = name.empty() ? m_defaultName : name;
+
+    // utf8length() clears its argument on malformed input, hence the copy.
+    std::string lengthProbe = trimmed;
+    std::size_t const length = utf8length(lengthProbe);
+    if (!length || length > m_maxNameLength)
+        return false;
+
+    LOG_INFO("NpcCustomizer", "Set NPC {} name to {}", guid, trimmed);
+    return true;
 }
 
-void NpcCustomizerManager::SetNpcLevel(uint64_t guid, uint32_t level)
+bool NpcCustomizerManager::SetNpcLevel(uint64_t guid, uint32_t level)
 {
-    LOG_INFO("NpcCustomizer", "Set NPC {} level to {}", guid, level);
+    // Levels above MaxLevel get the cap rather than a rejection: a GM asking for
+    // "boss level" usually means "as high as the module allows".
+    uint32_t const applied = m_maxLevel ? std::min(level, m_maxLevel) : level;
+
+    LOG_INFO("NpcCustomizer", "Set NPC {} level to {}", guid, applied);
+    return true;
 }
 
 void NpcCustomizerManager::SetNpcHealth(uint64_t guid, uint32_t health, uint32_t maxHealth)
@@ -105,7 +145,7 @@ std::vector<uint64_t> NpcCustomizerManager::GetSpawnedNpcs() const
 }
 
 // ============================================================================
-// CommandScript — real command registration
+// CommandScript - real command registration
 // ============================================================================
 
 class NpcCustomizerCommandScript : public CommandScript
@@ -138,15 +178,27 @@ public:
     }
 
 private:
-    // ---------- .npc spawn <entry> <x> <y> <z> <map> <name> ----------
+    // ---------- .npc spawn <entry> <x> <y> <z> <map> [name] ----------
     static bool HandleSpawnNpcCommand(ChatHandler* handler, uint32 entry, float x, float y, float z,
                                       uint32 mapId, std::string name)
     {
-        if (NpcCustomizerManager::Instance().SpawnNpc(entry, x, y, z, mapId, name))
-            handler->PSendSysMessage("NPC entry {} spawned at ({}, {}, {}) map {}.",
-                entry, x, y, z, mapId);
+        NpcCustomizerManager& mgr = NpcCustomizerManager::Instance();
+        uint64_t guid = 0;
+        if (mgr.SpawnNpc(entry, x, y, z, mapId, name, &guid))
+        {
+            handler->PSendSysMessage("NPC entry {} spawned at ({}, {}, {}) map {} as GUID {}.",
+                entry, x, y, z, mapId, guid);
+        }
+        else if (mgr.MaxSpawnedNpcs() && mgr.GetSpawnedNpcs().size() >= mgr.MaxSpawnedNpcs())
+        {
+            handler->PSendSysMessage("Cannot spawn NPC entry {}: the limit of {} tracked NPCs is reached.",
+                entry, mgr.MaxSpawnedNpcs());
+        }
         else
-            handler->PSendSysMessage("Cannot spawn NPC entry {}.", entry);
+        {
+            handler->PSendSysMessage("Cannot spawn NPC entry {} (the name must be at most {} characters).",
+                entry, mgr.MaxNameLength());
+        }
 
         return true;
     }
@@ -165,16 +217,28 @@ private:
     // ---------- .npc name <guid> <name> ----------
     static bool HandleSetNpcNameCommand(ChatHandler* handler, uint64 guid, std::string name)
     {
-        NpcCustomizerManager::Instance().SetNpcName(guid, name);
-        handler->PSendSysMessage("NPC {} renamed to '{}'.", guid, name);
+        NpcCustomizerManager& mgr = NpcCustomizerManager::Instance();
+        if (mgr.SetNpcName(guid, name))
+            handler->PSendSysMessage("NPC {} renamed to '{}'.", guid, name.empty() ? mgr.DefaultName() : name);
+        else
+            handler->PSendSysMessage("Name must be between 1 and {} characters.", mgr.MaxNameLength());
+
         return true;
     }
 
     // ---------- .npc level <guid> <level> ----------
     static bool HandleSetNpcLevelCommand(ChatHandler* handler, uint64 guid, uint32 level)
     {
-        NpcCustomizerManager::Instance().SetNpcLevel(guid, level);
-        handler->PSendSysMessage("NPC {} level set to {}.", guid, level);
+        NpcCustomizerManager& mgr = NpcCustomizerManager::Instance();
+        if (!mgr.SetNpcLevel(guid, level))
+        {
+            handler->PSendSysMessage("NPC level must be between 1 and {}.", mgr.MaxLevel());
+            return true;
+        }
+
+        // MaxLevel caps the request, so report the level the NPC actually got.
+        handler->PSendSysMessage("NPC {} level set to {}.", guid,
+            mgr.MaxLevel() ? std::min(level, mgr.MaxLevel()) : level);
         return true;
     }
 
@@ -238,7 +302,7 @@ extern "C"
 }
 
 // ============================================================================
-// Static instance — auto-registers via constructor
+// Static instance - auto-registers via constructor
 // ============================================================================
 
 

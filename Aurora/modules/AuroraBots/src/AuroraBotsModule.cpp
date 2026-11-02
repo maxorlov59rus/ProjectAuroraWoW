@@ -8,6 +8,8 @@
 #include <Player.h>
 #include <Chat.h>
 
+#include <algorithm>
+
 // ============================================================================
 // AuroraBotManager
 // ============================================================================
@@ -16,6 +18,13 @@ bool AuroraBotManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Bots.Enabled", "AuroraBots");
     m_maxBots = Aurora::Settings::Get<uint32_t>("Aurora.Bots.MaxBots", 20, "AuroraBots");
+    m_allowedClasses = Aurora::Settings::List("Aurora.Bots.AllowedClasses",
+        "WARRIOR,PALADIN,HUNTER,ROGUE,PRIEST,DEATHKNIGHT,SHAMAN,MAGE,WARLOCK", "AuroraBots");
+    m_allowedRaces = Aurora::Settings::List("Aurora.Bots.AllowedRaces",
+        "HUMAN,DRAENEI,NIGHT_ELF,GNOME,DWARF,ORC,UNDEAD,TAUREN,TROLL,BLOOD_ELF", "AuroraBots");
+    m_defaultScript = Aurora::Settings::Get<std::string>("Aurora.Bots.DefaultScript",
+        "scripts/bots/patrol.lua", "AuroraBots");
+    m_startRunning = Aurora::Settings::Enabled("Aurora.Bots.StartRunning", "AuroraBots", true);
 
     if (!m_enabled)
     {
@@ -23,8 +32,21 @@ bool AuroraBotManager::Initialize()
         return true;
     }
 
-    LOG_INFO("AuroraBots", "AuroraBots module initialized (max {} bots)", m_maxBots);
+    LOG_INFO("AuroraBots",
+        "AuroraBots module initialized (max {} bots, {} classes, {} races, default script '{}', start running: {})",
+        m_maxBots, m_allowedClasses.size(), m_allowedRaces.size(), m_defaultScript,
+        m_startRunning ? "yes" : "no");
     return true;
+}
+
+bool AuroraBotManager::IsClassAllowed(const std::string& className) const
+{
+    return Aurora::Settings::Contains(m_allowedClasses, className);
+}
+
+bool AuroraBotManager::IsRaceAllowed(const std::string& race) const
+{
+    return Aurora::Settings::Contains(m_allowedRaces, race);
 }
 
 uint64_t AuroraBotManager::CreateBot(const std::string& name,
@@ -37,12 +59,20 @@ uint64_t AuroraBotManager::CreateBot(const std::string& name,
     if (!m_enabled || m_bots.size() >= m_maxBots)
         return 0;
 
+    // The configured lists are the gate: an unlisted class or race would create a
+    // bot the module was never meant to run, so it is rejected instead of stored.
+    if (!Aurora::Settings::Contains(m_allowedClasses, className))
+        return 0;
+
+    if (!Aurora::Settings::Contains(m_allowedRaces, race))
+        return 0;
+
     BotInfo info;
     info.name = name;
     info.className = className;
     info.race = race;
-    info.luaScript = luaScript;
-    info.isRunning = false;
+    info.luaScript = luaScript.empty() ? m_defaultScript : luaScript;
+    info.isRunning = m_startRunning;
 
     uint64_t guid = m_nextGuid++;
     m_bots[guid] = info;

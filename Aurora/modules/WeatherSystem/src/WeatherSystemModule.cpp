@@ -1,5 +1,5 @@
 /*
- * WeatherSystem module — implementation
+ * WeatherSystem module - implementation
  *
  * Map weather control: set a weather type or trigger a timed storm.
  *
@@ -27,7 +27,7 @@
 #include <RBAC.h>
 
 // ============================================================================
-// WeatherSystemManager — implementation
+// WeatherSystemManager - implementation
 // ============================================================================
 
 WeatherSystemManager::WeatherSystemManager() = default;
@@ -43,7 +43,10 @@ WeatherSystemManager& WeatherSystemManager::Instance()
 bool WeatherSystemManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.Weather.Enabled", "WeatherSystem");
-    m_stormDurationSecs = Aurora::Settings::Get<uint32_t>("Aurora.Weather.StormDurationSecs", 300, "WeatherSystem");
+    m_maxWeatherType = Aurora::Settings::Get<uint32_t>("Aurora.Weather.MaxWeatherType", 11, "WeatherSystem");
+    m_defaultWeatherType = Aurora::Settings::Bounded<uint32_t>("Aurora.Weather.DefaultWeatherType", 5, 0, m_maxWeatherType, "WeatherSystem");
+    m_maxStormDurationSecs = Aurora::Settings::Get<uint32_t>("Aurora.Weather.MaxStormDurationSecs", 3600, "WeatherSystem");
+    m_stormDurationSecs = Aurora::Settings::Bounded<uint32_t>("Aurora.Weather.StormDurationSecs", 300, 1, m_maxStormDurationSecs, "WeatherSystem");
 
     if (!m_enabled)
     {
@@ -51,7 +54,8 @@ bool WeatherSystemManager::Initialize()
         return true;
     }
 
-    LOG_INFO("WeatherSystem", "WeatherSystem module initialized");
+    LOG_INFO("WeatherSystem", "WeatherSystem module initialized (storm {} s, default type {}, max type {})",
+        m_stormDurationSecs, m_defaultWeatherType, m_maxWeatherType);
     return true;
 }
 
@@ -64,7 +68,7 @@ void WeatherSystemManager::OnPlayerLogin(Player* p)
 {
     if (!p || !m_enabled)
         return;
-    LOG_INFO("WeatherSystem", "Player {} logged in — weather system available", p->GetName());
+    LOG_INFO("WeatherSystem", "Player {} logged in - weather system available", p->GetName());
 }
 
 void WeatherSystemManager::OnPlayerLevelUp(Player* p)
@@ -74,6 +78,19 @@ void WeatherSystemManager::OnPlayerLevelUp(Player* p)
     LOG_INFO("WeatherSystem", "Player {} leveled up", p->GetName());
 }
 
+bool WeatherSystemManager::IsValidWeatherType(uint32_t weatherType) const
+{
+    switch (weatherType)
+    {
+        // The ids the 3.3.5 client actually knows; the range alone would also
+        // accept the gaps between them, which make the client show nothing.
+        case 0: case 1: case 2: case 3: case 4: case 5:
+        case 6: case 7: case 8: case 11:
+            return weatherType <= m_maxWeatherType;
+        default:
+            return false;
+    }
+}
 
 void WeatherSystemManager::SetWeather(uint32_t mapId, uint32_t weatherType)
 {
@@ -116,11 +133,19 @@ public:
 
 private:
     // ---------- .weather set ----------
-    static bool HandleSetWeatherCommand(ChatHandler* handler, uint32 mapId, uint32 weatherType)
+    static bool HandleSetWeatherCommand(ChatHandler* handler, uint32 mapId, Optional<uint32> weatherTypeArg)
     {
         if (!WeatherSystemManager::Instance().IsEnabled())
         {
             handler->SendSysMessage("WeatherSystem is disabled by configuration.");
+            return true;
+        }
+
+        uint32 const weatherType = weatherTypeArg.value_or(WeatherSystemManager::Instance().DefaultWeatherType());
+        if (!WeatherSystemManager::Instance().IsValidWeatherType(weatherType))
+        {
+            handler->PSendSysMessage("Unknown weather type {} (0-8 or 11, up to {}).",
+                weatherType, WeatherSystemManager::Instance().MaxWeatherType());
             return true;
         }
 
@@ -128,8 +153,9 @@ private:
         return true;
     }
 
+
     // ---------- .weather storm ----------
-    static bool HandleTriggerStormCommand(ChatHandler* handler, uint32 mapId, uint32 duration)
+    static bool HandleTriggerStormCommand(ChatHandler* handler, uint32 mapId, Optional<uint32> durationArg)
     {
         if (!WeatherSystemManager::Instance().IsEnabled())
         {
@@ -137,9 +163,18 @@ private:
             return true;
         }
 
+        uint32 duration = durationArg.value_or(WeatherSystemManager::Instance().StormDurationSecs());
+        uint32 const maxDuration = WeatherSystemManager::Instance().MaxStormDurationSecs();
+        if (!duration || duration > maxDuration)
+        {
+            handler->PSendSysMessage("Storm duration must be between 1 and {} seconds.", maxDuration);
+            return true;
+        }
+
         handler->PSendSysMessage("Storm triggered on map {} for {} seconds.", mapId, duration);
         return true;
     }
+
 
     // ---------- .weather info ----------
     static bool HandleWeatherInfoCommand(ChatHandler* handler, std::string_view /*args*/)
@@ -150,7 +185,7 @@ private:
             return true;
         }
 
-        handler->PSendSysMessage("Default storm duration: {} s.", WeatherSystemManager::Instance().StormDurationSecs());
+        handler->PSendSysMessage("Default storm duration: {} s (maximum {}), default weather type {}.", WeatherSystemManager::Instance().StormDurationSecs(), WeatherSystemManager::Instance().MaxStormDurationSecs(), WeatherSystemManager::Instance().DefaultWeatherType());
         return true;
     }
 

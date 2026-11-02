@@ -2,8 +2,8 @@
 # NpcCustomizer module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_npccustomizer.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.NpcCustomizer.Enabled
@@ -11,3 +11,29 @@
 #        Default:     1
 
 Aurora.NpcCustomizer.Enabled = 1
+
+#    Aurora.NpcCustomizer.MaxSpawnedNpcs
+#        Number of customized NPCs the module keeps track of at once (0 = no NPC
+#        can be spawned). The registry is in memory and resets on restart.
+#        Default:     100
+
+Aurora.NpcCustomizer.MaxSpawnedNpcs = 100
+
+#    Aurora.NpcCustomizer.DefaultName
+#        Name shown for a spawned NPC created without an explicit one.
+#        Default:     "NPC"
+
+Aurora.NpcCustomizer.DefaultName = "NPC"
+
+#    Aurora.NpcCustomizer.MaxLevel
+#        Highest level that can be set on a customized NPC. 83 is the classic
+#        world-boss ceiling; raise it only for custom content.
+#        Default:     83
+
+Aurora.NpcCustomizer.MaxLevel = 83
+
+#    Aurora.NpcCustomizer.MaxNameLength
+#        Longest name accepted for a customized NPC.
+#        Default:     24
+
+Aurora.NpcCustomizer.MaxNameLength = 24

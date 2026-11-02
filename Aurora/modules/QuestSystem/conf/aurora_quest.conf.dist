@@ -2,12 +2,14 @@
 # QuestSystem module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_quest.conf after worldserver.conf.
-# Options are read by the module through sConfigMgr->GetOption(), so they can
-# be changed at runtime with `.reload config` unless noted otherwise.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
 # ============================================================================
 
 #    Aurora.Quests.Enabled
 #        Enable the Aurora quest helpers (.questx commands).
+#        The commands are placeholders for now, so this module has no further
+#        option until the quest creation itself is implemented.
 #        Default:     1
 
 Aurora.Quests.Enabled = 1

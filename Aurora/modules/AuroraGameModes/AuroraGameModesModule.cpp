@@ -1,5 +1,5 @@
 /**
- * AuroraGameModesModule — loadable AzerothCore module
+ * AuroraGameModesModule - loadable AzerothCore module
  *
  * Entry point for the game-modes module. Registered through
  * RegisterAuroraGameModes(), which the AzerothCore module loader calls
@@ -79,11 +79,36 @@ namespace {
                 return;
             }
 
+            // Allowed is the set of modes the server is willing to run; a Default
+            // outside it would silently start an unconfigured mode, so fall back
+            // to the first allowed one instead.
+            std::vector<std::string> allowed = Aurora::Settings::List(
+                "Aurora.GameModes.Allowed", "standard,rest,test", "AuroraGameModes");
+
             std::string mode = Aurora::Settings::Get<std::string>(
                 "Aurora.GameModes.Default", "standard", "AuroraGameModes");
 
+            if (!Aurora::Settings::Contains(allowed, mode))
+            {
+                if (allowed.empty())
+                {
+                    Logging::Warn("AuroraGameModes", Acore::StringFormat(
+                        "Aurora.GameModes.Allowed is empty, no game mode can start; default '{}' ignored", mode));
+                    GameModesModule::Instance().Initialize();
+                    return;
+                }
+
+                Logging::Warn("AuroraGameModes", Acore::StringFormat(
+                    "default mode '{}' is not in Aurora.GameModes.Allowed, using '{}'", mode, allowed.front()));
+                mode = allowed.front();
+            }
+
+            std::string allowedList;
+            for (std::string const& name : allowed)
+                allowedList += (allowedList.empty() ? "" : ",") + name;
+
             Logging::Info("AuroraGameModes", Acore::StringFormat(
-                "default game mode '{}' (known: standard, rest, test)", mode));
+                "default game mode '{}' (allowed: {})", mode, allowedList));
             GameModesModule::Instance().Initialize();
         }
     };

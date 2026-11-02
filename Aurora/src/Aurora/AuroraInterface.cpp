@@ -1,5 +1,5 @@
 /**
- * AuroraInterface.cpp — Interface class implementation.
+ * AuroraInterface.cpp - Interface class implementation.
  */
 #include <AuroraPCH.h>
 

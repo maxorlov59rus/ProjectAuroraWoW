@@ -17,7 +17,11 @@
 #include "Config.h"
 #include "Log.h"
 
+#include <algorithm>
+#include <cctype>
+#include <sstream>
 #include <string>
+#include <vector>
 
 namespace Aurora {
 namespace Settings {
@@ -44,6 +48,72 @@ inline bool Enabled(std::string const& option, char const* module, bool defaultV
     sLog->outMessage(Filter(module), LogLevel::LOG_LEVEL_INFO,
         "{}: {} = {}", module, option, value ? "yes" : "no");
     return value;
+}
+
+// Numeric option restricted to [minValue, maxValue]. Out-of-range values are
+// corrected rather than rejected: a typo in a rate should not stop the server,
+// but it has to be visible in the log.
+template<class T>
+inline T Bounded(std::string const& option, T defaultValue, T minValue, T maxValue, char const* module)
+{
+    T value = sConfigMgr->GetOption<T>(option, defaultValue);
+
+    T clamped = std::clamp(value, minValue, maxValue);
+    if (clamped != value)
+    {
+        sLog->outMessage(Filter(module), LogLevel::LOG_LEVEL_WARN,
+            "{}: {} = {} is outside [{}, {}], using {}",
+            module, option, value, minValue, maxValue, clamped);
+    }
+    else
+    {
+        sLog->outMessage(Filter(module), LogLevel::LOG_LEVEL_INFO, "{}: {} = {}", module, option, value);
+    }
+
+    return clamped;
+}
+
+// Comma separated list, e.g. "WARRIOR,PALADIN". Empty entries are dropped, so
+// an option written as "" yields an empty list rather than one empty item.
+inline std::vector<std::string> List(std::string const& option, std::string const& defaultValue, char const* module)
+{
+    auto trim = [](std::string& text)
+    {
+        auto const notSpace = [](unsigned char c) { return !std::isspace(c); };
+        text.erase(text.begin(), std::find_if(text.begin(), text.end(), notSpace));
+        text.erase(std::find_if(text.rbegin(), text.rend(), notSpace).base(), text.end());
+    };
+
+    std::string const raw = sConfigMgr->GetOption<std::string>(option, defaultValue);
+
+    std::vector<std::string> values;
+    std::istringstream stream(raw);
+    std::string item;
+    while (std::getline(stream, item, ','))
+    {
+        trim(item);
+        if (!item.empty())
+            values.push_back(std::move(item));
+    }
+
+    sLog->outMessage(Filter(module), LogLevel::LOG_LEVEL_INFO, "{}: {} = {}", module, option, raw);
+    return values;
+}
+
+// Case-insensitive membership test for the List() options above.
+inline bool Contains(std::vector<std::string> const& values, std::string const& value)
+{
+    auto equal = [&value](std::string const& item)
+    {
+        return item.size() == value.size()
+            && std::equal(item.begin(), item.end(), value.begin(), [](char l, char r)
+            {
+                return std::toupper(static_cast<unsigned char>(l)) == std::toupper(static_cast<unsigned char>(r));
+            });
+    };
+
+    return std::find(values.begin(), values.end(), value) != values.end()
+        || std::any_of(values.begin(), values.end(), equal);
 }
 
 } // namespace Settings

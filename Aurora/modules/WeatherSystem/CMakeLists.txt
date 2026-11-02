@@ -1,5 +1,5 @@
 #
-# WeatherSystem module — loadable AzerothCore module
+# WeatherSystem module - loadable AzerothCore module
 #
 # This module provides dynamic weather affecting gameplay.
 #
@@ -12,7 +12,7 @@ add_library(WeatherSystem MODULE ${WEATHERSYSTEM_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(WeatherSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

@@ -1,5 +1,5 @@
 #
-# AdminTools module — loadable AzerothCore module
+# AdminTools module - loadable AzerothCore module
 #
 # This module provides GM commands and admin panel features.
 #
@@ -12,7 +12,7 @@ add_library(AdminTools MODULE ${ADMINTOOLS_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(AdminTools PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

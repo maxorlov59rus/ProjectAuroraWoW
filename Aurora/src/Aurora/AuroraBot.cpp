@@ -1,5 +1,5 @@
 /*
- * AuroraBot.cpp — реализация класса бота.
+ * AuroraBot.cpp - реализация класса бота.
  * Наследуется от Player (AzerothCore).
 */
 

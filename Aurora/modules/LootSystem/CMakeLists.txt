@@ -1,5 +1,5 @@
 #
-# LootSystem module — loadable AzerothCore module
+# LootSystem module - loadable AzerothCore module
 #
 # This module provides custom loot tables and drop rates.
 #
@@ -12,7 +12,7 @@ add_library(LootSystem MODULE ${LOOTSYSTEM_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(LootSystem PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

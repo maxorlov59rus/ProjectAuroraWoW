@@ -1,7 +1,7 @@
 /*
- * TeleportationModule — модуль телепортации для AzerothCore (Wotlk)
+ * TeleportationModule - teleportation module for AzerothCore (WotLK)
  *
- * Предоставляет систему телепортации игроков в различные локации.
+ * Provides a teleport destination registry and moves players to those points.
  */
 
 #pragma once
@@ -19,16 +19,16 @@ class WorldSession;
 class Player;
 class ChatHandler;
 
-// Структура точки телепортации
+// A single teleport destination
 struct TeleportLocation
 {
     std::string name;
-    float x, y, z;
-    uint32_t mapId;
+    float x = 0.0f, y = 0.0f, z = 0.0f;
+    uint32_t mapId = 0;
     std::string description;
 };
 
-// Глобальный менеджер телепортации
+// Global teleportation manager
 class TeleportationManager
 {
 public:
@@ -38,22 +38,22 @@ public:
         return inst;
     }
 
-    // Инициализация менеджера
+    // Loads the options and, unless disabled, the capital destinations.
     bool Initialize();
 
-    // Добавить точку телепортации
+    // Add a teleport destination
     bool AddLocation(const std::string& name, float x, float y, float z, uint32_t mapId, const std::string& description = "");
 
-    // Удалить точку телепортации
+    // Remove a teleport destination
     bool RemoveLocation(const std::string& name);
 
-    // Телепортировать игрока в локацию
+    // Move a player to a destination
     bool TeleportPlayer(Player* pPlayer, const std::string& locationName);
 
-    // Получить список всех локаций
+    // All known destinations
     std::vector<TeleportLocation> GetLocations() const;
 
-    // Проверить, существует ли локация
+    // Whether a destination is registered
     bool LocationExists(const std::string& name) const;
 
     bool IsEnabled() const { return m_enabled; }

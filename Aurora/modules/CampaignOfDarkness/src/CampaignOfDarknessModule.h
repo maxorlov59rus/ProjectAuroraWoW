@@ -108,9 +108,24 @@ public:
     bool SaveSpawnList(const std::string& filename);
 
     bool IsEnabled() const { return m_enabled; }
+    // Access rules read from aurora_campaign_darkness.conf: the campaign is a
+    // horde-only chain, so a non-horde character has to be turned away, and the
+    // level gate is what keeps low level characters out of it.
+    bool RequireHorde() const { return m_requireHorde; }
+    uint32_t MinLevelToUnlock() const { return m_minLevelToUnlock; }
+    // Faction id given to campaign NPCs that do not carry one of their own.
+    uint32_t DefaultFaction() const { return m_defaultFaction; }
+    // Multiplier applied to the gold reward of a completed campaign quest.
+    float RewardGoldMultiplier() const { return m_rewardGoldMultiplier; }
+    // Gold a quest pays out after RewardGoldMultiplier was applied.
+    uint32_t RewardGoldFor(const CampaignQuest& quest) const;
 
 private:
     bool m_enabled = true;
+    bool m_requireHorde = true;
+    uint32_t m_minLevelToUnlock = 10;
+    uint32_t m_defaultFaction = 2142;
+    float m_rewardGoldMultiplier = 1.0f;
 
     CampaignOfDarknessManager() {}
     ~CampaignOfDarknessManager() {}

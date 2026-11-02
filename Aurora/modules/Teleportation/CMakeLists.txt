@@ -1,5 +1,5 @@
 #
-# Teleportation module — loadable AzerothCore module
+# Teleportation module - loadable AzerothCore module
 #
 # This module provides a teleportation system for players.
 # Players can teleport to various locations, dungeons, and instances.
@@ -13,7 +13,7 @@ add_library(Teleportation MODULE ${TELEPORTATION_SOURCES})
 
 
 # Aurora core layer headers (AuroraPCH.h, AuroraLogging.h, ...).
-# Must come AFTER add_library — CMake forbids target_* on unknown targets.
+# Must come AFTER add_library - CMake forbids target_* on unknown targets.
 target_include_directories(Teleportation PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/Aurora
 )

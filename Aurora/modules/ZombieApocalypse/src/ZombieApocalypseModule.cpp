@@ -1,5 +1,5 @@
 /*
- * ZombieApocalypse module — implementation
+ * ZombieApocalypse module - implementation
  *
  * Zombie apocalypse events: timed event, random zombie spawns, chat commands.
  *
@@ -26,8 +26,10 @@
 
 #include <cstdlib>
 
+#include <algorithm>
+
 // ============================================================================
-// ZombieApocalypseManager — implementation
+// ZombieApocalypseManager - implementation
 // ============================================================================
 
 ZombieApocalypseManager::ZombieApocalypseManager()
@@ -43,10 +45,16 @@ ZombieApocalypseManager::~ZombieApocalypseManager()
 bool ZombieApocalypseManager::Initialize()
 {
     m_enabled = Aurora::Settings::Enabled("Aurora.ZombieApocalypse.Enabled", "ZombieApocalypse");
-    m_defaultDurationMinutes = Aurora::Settings::Get<uint32_t>(
-        "Aurora.ZombieApocalypse.DurationMinutes", 30, "ZombieApocalypse");
+    m_maxDurationMinutes = Aurora::Settings::Get<uint32_t>(
+        "Aurora.ZombieApocalypse.MaxDurationMinutes", 1440, "ZombieApocalypse");
+    m_defaultDurationMinutes = Aurora::Settings::Bounded<uint32_t>(
+        "Aurora.ZombieApocalypse.DurationMinutes", 30, 1, m_maxDurationMinutes, "ZombieApocalypse");
     m_defaultMaxZombies = Aurora::Settings::Get<uint32_t>(
         "Aurora.ZombieApocalypse.MaxZombies", 50, "ZombieApocalypse");
+    m_maxZombieLevel = Aurora::Settings::Bounded<uint32_t>(
+        "Aurora.ZombieApocalypse.MaxZombieLevel", 80, 1, 83, "ZombieApocalypse");
+    m_healthPerLevel = Aurora::Settings::Get<uint32_t>(
+        "Aurora.ZombieApocalypse.HealthPerLevel", 10, "ZombieApocalypse");
 
     if (!m_enabled)
     {
@@ -54,8 +62,12 @@ bool ZombieApocalypseManager::Initialize()
         return true;
     }
 
-    LOG_INFO("ZombieApocalypse", "ZombieApocalypse module initialized (default: {} min, {} zombies)",
-        m_defaultDurationMinutes, m_defaultMaxZombies);
+    // The idle limit equals the configured default until an event overrides it.
+    m_maxZombies = m_defaultMaxZombies;
+
+    LOG_INFO("ZombieApocalypse",
+        "ZombieApocalypse module initialized (default: {} min up to {} min, {} zombies, level up to {}, {} health per level)",
+        m_defaultDurationMinutes, m_maxDurationMinutes, m_defaultMaxZombies, m_maxZombieLevel, m_healthPerLevel);
     return true;
 }
 
@@ -64,6 +76,11 @@ bool ZombieApocalypseManager::StartEvent(uint32_t durationMinutes, uint32_t maxZ
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_enabled || m_eventActive)
         return false;
+
+    // An event longer than MaxDurationMinutes would outlive the window the server
+    // was tuned for, so both arguments are bounded rather than trusted.
+    if (m_maxDurationMinutes && durationMinutes > m_maxDurationMinutes)
+        durationMinutes = m_maxDurationMinutes;
 
     m_durationMinutes = durationMinutes;
     m_maxZombies = maxZombies;
@@ -84,7 +101,9 @@ void ZombieApocalypseManager::StopEvent()
 
     m_eventActive = false;
     m_durationMinutes = 0;
-    m_maxZombies = 50;
+    // Back to the configured default, not to a literal 50 that would ignore
+    // Aurora.ZombieApocalypse.MaxZombies after the first stopped event.
+    m_maxZombies = m_defaultMaxZombies;
     m_eventStartTime = 0;
     m_eventEndTime = 0;
     m_zombies.clear();
@@ -104,8 +123,10 @@ bool ZombieApocalypseManager::SpawnRandomZombie()
 
     ZombieInfo info{};
     info.name = "Zombie";
-    info.level = static_cast<uint32_t>(rand() % 80) + 1;
-    info.health = info.level * 10;
+    // Both numbers come from the config now: the level roll stays inside
+    // MaxZombieLevel and HealthPerLevel decides how tanky a zombie is.
+    info.level = m_maxZombieLevel ? static_cast<uint32_t>(rand() % m_maxZombieLevel) + 1 : 1;
+    info.health = info.level * m_healthPerLevel;
     info.maxHealth = info.health;
     info.speed = 1.5f;
     info.isAlive = true;
@@ -171,10 +192,13 @@ time_t ZombieApocalypseManager::GetRemainingTime() const
 
 uint32_t GetZombieLevelForPlayer(Player* pPlayer)
 {
+    uint32_t const cap = ZombieApocalypseManager::Instance().MaxZombieLevel();
     if (!pPlayer)
-        return 80;
+        return cap;
 
-    return std::min<uint32_t>(80, pPlayer->GetLevel() + 5);
+    // GetLevel() is a uint8 and the arithmetic promotes it to int, so both
+    // operands are widened explicitly for std::min.
+    return std::min<uint32_t>(cap, static_cast<uint32_t>(pPlayer->GetLevel()) + 5u);
 }
 
 void SpawnZombieAtLocation(Player* /*pPlayer*/, const std::string& /*locationName*/)
@@ -185,7 +209,7 @@ void SpawnZombieAtLocation(Player* /*pPlayer*/, const std::string& /*locationNam
 }
 
 // ============================================================================
-// CommandScript — real command registration
+// CommandScript - real command registration
 // ============================================================================
 
 class ZombieApocalypseCommandScript : public CommandScript
@@ -215,20 +239,33 @@ public:
     }
 
 private:
-    // ---------- .zombie start <minutes> [maxZombies] ----------
-    static bool HandleStartEventCommand(ChatHandler* handler, uint32 durationMinutes, uint32 maxZombies)
+    // ---------- .zombie start [minutes] [maxZombies] ----------
+    static bool HandleStartEventCommand(ChatHandler* handler, Optional<uint32> durationArg, Optional<uint32> maxZombiesArg)
     {
-        if (!ZombieApocalypseManager::Instance().IsEnabled())
+        ZombieApocalypseManager& mgr = ZombieApocalypseManager::Instance();
+        if (!mgr.IsEnabled())
         {
             handler->SendSysMessage("ZombieApocalypse is disabled by configuration.");
             return true;
         }
 
-        if (ZombieApocalypseManager::Instance().StartEvent(durationMinutes, maxZombies))
-            handler->PSendSysMessage("Zombie apocalypse started for {} minutes, max {} zombies.",
-                durationMinutes, maxZombies);
-        else
+        // Both arguments fall back to the configured defaults, so a plain
+        // ".zombie start" runs the event the config describes.
+        uint32 const duration = durationArg.value_or(mgr.DefaultDurationMinutes());
+        uint32 const maxZombies = maxZombiesArg.value_or(mgr.DefaultMaxZombies());
+
+        if (!mgr.StartEvent(duration, maxZombies))
+        {
             handler->SendSysMessage("Failed to start the event (already running?).");
+            return true;
+        }
+
+        // MaxDurationMinutes caps the request inside the manager; echo what the
+        // event actually got.
+        uint32 const applied = mgr.MaxDurationMinutes()
+            ? std::min(duration, mgr.MaxDurationMinutes()) : duration;
+        handler->PSendSysMessage("Zombie apocalypse started for {} minutes, max {} zombies.",
+            applied, maxZombies);
 
         return true;
     }
@@ -303,7 +340,7 @@ extern "C"
 }
 
 // ============================================================================
-// Static instance — auto-registers via constructor
+// Static instance - auto-registers via constructor
 // ============================================================================
 
 namespace
