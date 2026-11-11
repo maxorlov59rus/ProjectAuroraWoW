@@ -34,7 +34,7 @@ session key — он нужен для этапа 3.
 | 2 | AuthServer: `AUTH_LOGON_CHALLENGE` / `LOGON_PROOF`, SRP6 | Код готов, не проверен на живом сервере |
 | 3 | WorldServer: SMSG_AUTH_CHALLENGE, ARC4 + HMAC | Код готов, не проверен на живом сервере |
 | 4 | Char-select: SMSG_CHAR_ENUM, CMSG_PLAYER_LOGIN | Готов, собирается |
-| 5 | Источники мира: Debug / Procedural / External | Готов, собирается |
+| 5 | Источники мира: Debug / Procedural / External + SMSG_UPDATE_OBJECT | Готов, собирается |
 
 ## Структура
 
@@ -126,3 +126,21 @@ UE сложнее, чем в изолированном тесте. Поэтом
   ]
 }
 ```
+## Этап 6: объекты мира из сервера
+
+| Файл | Назначение |
+|---|---|
+| `Public/World/UpdateObject.h`, `Private/World/UpdateObject.cpp` | Разбор SMSG_UPDATE_OBJECT: блоки OutOfRange / Near / Movement / Values / CreateObject / CreateObject2 |
+| `Public/World/WorldState.h`, `Private/World/WorldState.cpp` | Словарь объектов по GUID: применение пакета, удаление, выборка в радиусе в виде `FWorldEntity` |
+
+`FWorldState::GetEntitiesNear` отдаёт ровно тот формат, который ждёт
+`IWorldSource`, поэтому `FDebugWorldSource` можно наполнять прямо из
+живого мира.
+
+### Известные ограничения парсера
+
+Разбор SMSG_UPDATE_OBJECT останавливается после первого блока
+`CreateObject`, `Movement` или неизвестного блока. Это осознанно:
+в 3.3.5a поля объекта — дельта с переменной длиной, и при ошибке в одном
+смещении весь остальной пакет разъезжается. Для отрисовки координат
+первого блока достаточно; полный разбор полей — отдельный этап.
