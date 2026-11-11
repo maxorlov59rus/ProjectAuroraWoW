@@ -1,9 +1,11 @@
 #pragma once
 #include "Define.h"
+#include "CampaignStore.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <AuroraPCH.h>
 
 class WorldSession; class Player; class ChatHandler; class GameObject; class Creature;
@@ -125,10 +127,8 @@ private:
     CampaignOfDarknessManager() {}
     ~CampaignOfDarknessManager() {}
     
-    std::map<uint32_t, CampaignNpc> m_npcs;
-    std::map<uint32_t, std::map<uint32_t, DialogueNode>> m_dialogues; // npcEntry -> dialogueId -> node
-    std::map<uint32_t, CampaignQuest> m_quests;
-    std::map<uint32_t, CampaignBoss> m_bosses;
-    std::map<uint32_t, CampaignShop> m_shops;
-    mutable std::mutex m_mutex;
+    // Данные кампании живут в CampaignStore: он держит карты, мьютекс и
+    // возвращает значения по копии, поэтому ни один указатель на элемент
+    // карты не выходит за пределы блокировки.
+    Aurora::Campaign::Store m_store;
 };

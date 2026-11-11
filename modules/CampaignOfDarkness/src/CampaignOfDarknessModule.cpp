@@ -80,9 +80,8 @@ void CampaignOfDarknessManager::OnPlayerLogin(Player* p)
     if (!p)
         return;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
     LOG_INFO("CampaignOfDarkness", "Player {} logged in - {} campaign NPCs, {} quests available",
-        p->GetName(), static_cast<uint32>(m_npcs.size()), static_cast<uint32>(m_quests.size()));
+        p->GetName(), static_cast<uint32>(m_store.NpcCount()), static_cast<uint32>(m_store.QuestCount()));
 }
 
 void CampaignOfDarknessManager::OnPlayerLevelUp(Player* p)
@@ -97,8 +96,6 @@ void CampaignOfDarknessManager::OnPlayerLevelUp(Player* p)
 
 bool CampaignOfDarknessManager::AddNpc(const CampaignNpc& npc)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
     CampaignNpc stored = npc;
     // Spawn lists and scripts routinely leave the faction empty; the campaign
     // NPCs then have to share one configured faction instead of being hostile
@@ -106,33 +103,26 @@ bool CampaignOfDarknessManager::AddNpc(const CampaignNpc& npc)
     if (stored.faction == 0)
         stored.faction = m_defaultFaction;
 
-    m_npcs[stored.entry] = stored;
+    m_store.PutNpc(stored);
     LOG_INFO("CampaignOfDarkness", "Added NPC {} (entry {})", stored.name, stored.entry);
     return true;
 }
 
 bool CampaignOfDarknessManager::RemoveNpc(uint32_t entry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_npcs.erase(entry) > 0;
+    return m_store.RemoveNpc(entry);
 }
 
 std::vector<CampaignNpc> CampaignOfDarknessManager::GetNpcs() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    std::vector<CampaignNpc> list;
-    list.reserve(m_npcs.size());
-    for (auto const& [entry, npc] : m_npcs)
-        list.push_back(npc);
-    return list;
+    return m_store.GetNpcs();
 }
 
 // ---------- Dialogue ----------
 
 bool CampaignOfDarknessManager::AddDialogue(uint32_t npcEntry, const DialogueNode& node)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_dialogues[npcEntry][node.id] = node;
+    m_store.PutDialogue(npcEntry, node);
     return true;
 }
 
@@ -141,18 +131,13 @@ bool CampaignOfDarknessManager::ShowDialogue(Player* p, uint32_t npcEntry, uint3
     if (!p)
         return false;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto npcIt = m_dialogues.find(npcEntry);
-    if (npcIt == m_dialogues.end())
-        return false;
-
-    auto nodeIt = npcIt->second.find(nodeId);
-    if (nodeIt == npcIt->second.end())
+    auto node = m_store.GetDialogue(npcEntry, nodeId);
+    if (!node)
         return false;
 
     // TODO: send the dialogue packet to the client (see CampaignOfLight).
     LOG_INFO("CampaignOfDarkness", "Dialogue {} shown to player {} (npc {}): {}",
-        nodeId, p->GetName(), npcEntry, nodeIt->second.text);
+        nodeId, p->GetName(), npcEntry, node->text);
     return true;
 }
 
@@ -160,8 +145,7 @@ bool CampaignOfDarknessManager::ShowDialogue(Player* p, uint32_t npcEntry, uint3
 
 bool CampaignOfDarknessManager::AddQuest(const CampaignQuest& quest)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_quests[quest.questId] = quest;
+    m_store.PutQuest(quest);
     LOG_INFO("CampaignOfDarkness", "Added quest {} (ID: {})", quest.title, quest.questId);
     return true;
 }
@@ -186,12 +170,11 @@ bool CampaignOfDarknessManager::StartQuest(Player* p, uint32_t questId)
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_quests.find(questId);
-    if (it == m_quests.end())
+    auto quest = m_store.GetQuest(questId);
+    if (!quest)
         return false;
 
-    LOG_INFO("CampaignOfDarkness", "Player {} started quest {} (ID: {})", p->GetName(), it->second.title, questId);
+    LOG_INFO("CampaignOfDarkness", "Player {} started quest {} (ID: {})", p->GetName(), quest->title, questId);
 
     // TODO: give the quest to the player via Player::AddQuest() once the
     // quest templates are imported into the world database.
@@ -205,17 +188,15 @@ bool CampaignOfDarknessManager::CompleteQuest(Player* p, uint32_t questId)
 
     uint32 rewardGold = 0;
     std::string title;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_quests.find(questId);
-        if (it == m_quests.end())
-            return false;
 
-        title = it->second.title;
-        rewardGold = RewardGoldFor(it->second);
+    auto quest = m_store.GetQuest(questId);
+    if (!quest)
+        return false;
 
-        LOG_INFO("CampaignOfDarkness", "Player {} completed quest {} (ID: {})", p->GetName(), it->second.title, questId);
-    }
+    title = quest->title;
+    rewardGold = RewardGoldFor(*quest);
+
+    LOG_INFO("CampaignOfDarkness", "Player {} completed quest {} (ID: {})", p->GetName(), quest->title, questId);
 
     // RewardGoldMultiplier is only visible to players if the payout it produced
     // is what they are told about.
@@ -229,14 +210,12 @@ bool CampaignOfDarknessManager::CompleteQuest(Player* p, uint32_t questId)
 
 bool CampaignOfDarknessManager::SpawnBoss(uint32_t bossEntry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_bosses.find(bossEntry);
-    if (it == m_bosses.end())
+    auto boss = m_store.GetBoss(bossEntry);
+    if (!boss)
         return false;
 
-    CampaignBoss const& boss = it->second;
     LOG_INFO("CampaignOfDarkness", "Spawning boss {} (entry {}) at ({}, {}, {}) map {}",
-        boss.name, boss.entry, boss.spawnLocationX, boss.spawnLocationY, boss.spawnLocationZ, boss.mapId);
+        boss->name, boss->entry, boss->spawnLocationX, boss->spawnLocationY, boss->spawnLocationZ, boss->mapId);
 
     // TODO: actually create the creature through the map spawn helper.
     return true;
@@ -244,26 +223,19 @@ bool CampaignOfDarknessManager::SpawnBoss(uint32_t bossEntry)
 
 bool CampaignOfDarknessManager::RemoveBoss(uint32_t bossEntry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_bosses.erase(bossEntry) > 0;
+    return m_store.RemoveBoss(bossEntry);
 }
 
 std::vector<CampaignBoss> CampaignOfDarknessManager::GetBosses() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    std::vector<CampaignBoss> list;
-    list.reserve(m_bosses.size());
-    for (auto const& [entry, boss] : m_bosses)
-        list.push_back(boss);
-    return list;
+    return m_store.GetBosses();
 }
 
 // ---------- Shop ----------
 
 bool CampaignOfDarknessManager::AddShop(const CampaignShop& shop)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_shops[shop.vendorEntry] = shop;
+    m_store.PutShop(shop);
     LOG_INFO("CampaignOfDarkness", "Added shop {} (vendor {})", shop.name, shop.vendorEntry);
     return true;
 }
@@ -273,16 +245,15 @@ bool CampaignOfDarknessManager::ShowShop(Player* p, uint32_t vendorEntry)
     if (!p)
         return false;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_shops.find(vendorEntry);
-    if (it == m_shops.end())
+    auto shop = m_store.GetShop(vendorEntry);
+    if (!shop)
         return false;
 
     // TODO: open the vendor list on the client once the vendor creature exists.
     // Player has no printf-style accessor, so the message goes through a
     // temporary ChatHandler bound to the player's session.
     ChatHandler(p->GetSession()).PSendSysMessage("Campaign shop '{}' (vendor entry {}, {} items)",
-        it->second.name, it->second.vendorEntry, static_cast<uint32>(it->second.items.size()));
+        shop->name, shop->vendorEntry, static_cast<uint32>(shop->items.size()));
     return true;
 }
 
@@ -352,13 +323,10 @@ bool CampaignOfDarknessManager::LoadSpawnList(const std::string& filename)
         }
     }
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (auto const& npc : npcs)
-            m_npcs[npc.entry] = npc;
-        for (auto const& boss : bosses)
-            m_bosses[boss.entry] = boss;
-    }
+    for (auto const& npc : npcs)
+        m_store.PutNpc(npc);
+    for (auto const& boss : bosses)
+        m_store.PutBoss(boss);
 
     LOG_INFO("CampaignOfDarkness", "Loaded spawn list '{}' ({} NPCs, {} bosses)",
         filename, npcCount, bossCount);
@@ -374,14 +342,12 @@ bool CampaignOfDarknessManager::SaveSpawnList(const std::string& filename)
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-
     file << "# Campaign of Darkness spawn list\n";
-    for (auto const& [entry, npc] : m_npcs)
+    for (auto const& npc : m_store.GetNpcs())
         file << "npc " << npc.entry << " " << npc.name << " " << npc.level << " "
              << npc.mapId << " " << npc.x << " " << npc.y << " " << npc.z << "\n";
 
-    for (auto const& [entry, boss] : m_bosses)
+    for (auto const& boss : m_store.GetBosses())
         file << "boss " << boss.entry << " " << boss.name << " " << boss.level << " "
              << boss.mapId << " " << boss.spawnLocationX << " "
              << boss.spawnLocationY << " " << boss.spawnLocationZ << "\n";
