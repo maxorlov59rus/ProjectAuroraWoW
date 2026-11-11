@@ -162,7 +162,7 @@ private:
         return true;
     }
 
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -177,7 +177,7 @@ public:
     {
         LootSystemManager::Instance().Initialize();
     }
-};
+}
 
 // ============================================================================
 // AzerothCore module loader entry point.

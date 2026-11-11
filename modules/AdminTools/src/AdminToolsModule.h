@@ -23,9 +23,3 @@ private:
     bool m_enabled = true;
     bool m_requireSession = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeAdminToolsModule();
-    __declspec(dllexport) void __stdcall FinalizeAdminToolsModule();
-}

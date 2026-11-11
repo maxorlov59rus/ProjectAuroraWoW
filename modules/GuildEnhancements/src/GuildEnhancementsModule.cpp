@@ -146,7 +146,7 @@ private:
         return true;
     }
 
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -161,7 +161,7 @@ public:
     {
         GuildEnhancementsManager::Instance().Initialize();
     }
-};
+}
 
 // ============================================================================
 // AzerothCore module loader entry point.

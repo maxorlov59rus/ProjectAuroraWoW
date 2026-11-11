@@ -147,7 +147,7 @@ private:
         return true;
     }
 
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -162,7 +162,7 @@ public:
     {
         EconomyManager::Instance().Initialize();
     }
-};
+}
 
 // ============================================================================
 // AzerothCore module loader entry point.

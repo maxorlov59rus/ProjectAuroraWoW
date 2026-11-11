@@ -25,7 +25,6 @@ struct PuppetState
     uint32_t tauntSpell = 0;
     uint32_t chargeSpell = 0;
 };
-
 class PuppetTheatreManager
 {
 public:
@@ -62,5 +61,4 @@ private:
     std::map<ObjectGuid, PuppetState> m_puppets;
     mutable std::mutex m_mutex;
 };
-
 void AddPuppetTheatreScripts();

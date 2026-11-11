@@ -40,7 +40,7 @@ public:
         static GameModesModule instance;
         return instance;
     }
-};
+}
 
 extern "C" void RegisterAuroraGameModes()
 {

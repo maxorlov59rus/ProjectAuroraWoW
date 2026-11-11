@@ -39,7 +39,7 @@ public:
         static SkinsModule instance;
         return instance;
     }
-};
+}
 
 extern "C" void RegisterAuroraSkins()
 {

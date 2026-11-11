@@ -29,7 +29,6 @@ struct ChronoEcho
     uint64_t expireAtMs = 0;           // when the echo despawns
     bool spawned = false;
 };
-
 class ChronosculptorManager
 {
 public:
@@ -72,5 +71,4 @@ private:
     uint32_t m_nextEchoGuid = 1;
     mutable std::mutex m_mutex;
 };
-
 void AddChronosculptorScripts();

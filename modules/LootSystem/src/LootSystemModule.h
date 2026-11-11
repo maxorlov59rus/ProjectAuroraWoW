@@ -27,9 +27,3 @@ private:
     float m_dropRate = {};
     float m_maxDropRate = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeLootSystemModule();
-    __declspec(dllexport) void __stdcall FinalizeLootSystemModule();
-}

@@ -32,9 +32,3 @@ private:
     uint32_t m_defaultWeatherType = {};
     uint32_t m_maxWeatherType = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeWeatherSystemModule();
-    __declspec(dllexport) void __stdcall FinalizeWeatherSystemModule();
-}

@@ -22,7 +22,6 @@ struct BestiaryCard
     uint32_t mutation = 0;    // visual mutation variant id
     uint32_t count = 0;
 };
-
 class BestiaryManager
 {
 public:
@@ -53,5 +52,4 @@ private:
     std::vector<std::string> m_trophies;        // types that earned a trophy
     mutable std::mutex m_mutex;
 };
-
 void AddBestiaryScripts();

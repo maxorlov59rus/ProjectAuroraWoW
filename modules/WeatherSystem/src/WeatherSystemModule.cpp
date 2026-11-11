@@ -189,7 +189,7 @@ private:
         return true;
     }
 
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -204,7 +204,7 @@ public:
     {
         WeatherSystemManager::Instance().Initialize();
     }
-};
+}
 
 // ============================================================================
 // AzerothCore module loader entry point.

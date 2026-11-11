@@ -157,7 +157,7 @@ private:
         return true;
     }
 
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -172,7 +172,7 @@ public:
     {
         AdminToolsManager::Instance().Initialize();
     }
-};
+}
 
 // ============================================================================
 // AzerothCore module loader entry point.

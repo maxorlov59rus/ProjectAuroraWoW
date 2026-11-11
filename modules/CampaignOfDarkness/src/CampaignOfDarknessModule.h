@@ -23,7 +23,6 @@ struct CampaignNpc
     bool isBoss;
     bool isVendor;
 };
-
 // ---------- Dialogue System ----------
 struct DialogueNode
 {
@@ -33,7 +32,6 @@ struct DialogueNode
     std::string luaScript;
     bool isEnd;
 };
-
 // ---------- Quest Data ----------
 struct CampaignQuest
 {
@@ -44,7 +42,6 @@ struct CampaignQuest
     uint32_t rewardGold;
     std::string luaScript;
 };
-
 // ---------- Boss Data ----------
 struct CampaignBoss
 {
@@ -56,7 +53,6 @@ struct CampaignBoss
     uint32_t spawnLocationX, spawnLocationY, spawnLocationZ;
     uint32_t mapId;
 };
-
 // ---------- Shop Data ----------
 struct CampaignShop
 {
@@ -65,7 +61,6 @@ struct CampaignShop
     std::vector<uint32_t> items; // item entries
     std::string luaScript;
 };
-
 // ---------- Campaign Manager ----------
 class CampaignOfDarknessManager
 {
@@ -137,10 +132,3 @@ private:
     std::map<uint32_t, CampaignShop> m_shops;
     mutable std::mutex m_mutex;
 };
-
-// ---------- Module registration ----------
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeCampaignOfDarknessModule();
-    __declspec(dllexport) void __stdcall FinalizeCampaignOfDarknessModule();
-}

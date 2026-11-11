@@ -38,7 +38,6 @@ struct ClasslessInfo
     // Optional Lua script name for AI
     std::string luaScript;
 };
-
 // ---------- Global manager ----------
 class ClasslessManager
 {
@@ -95,16 +94,8 @@ private:
     uint64_t m_nextGuid = 1;
     mutable std::mutex m_mutex;
 };
-
 // ---------- Helper: map class name to AzerothCore class mask ----------
 uint32_t GetClassMaskForName(const std::string& name);
 
 // Helper: check if a player is classless.
 bool IsClassless(Player* pPlayer);
-
-// ---------- Module registration ----------
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeClasslessSystemModule();
-    __declspec(dllexport) void __stdcall FinalizeClasslessSystemModule();
-}

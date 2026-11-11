@@ -282,7 +282,7 @@ private:
 
         return true;
     }
-};
+}
 
 // ============================================================================
 // Static instance - auto-registers via constructor
@@ -304,7 +304,7 @@ public:
     {
         NpcCustomizerManager::Instance().Initialize();
     }
-};
+}
 
 
 // ============================================================================

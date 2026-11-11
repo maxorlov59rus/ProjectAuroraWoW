@@ -213,7 +213,7 @@ private:
 
         return true;
     }
-};
+}
 
 // ============================================================================
 // PlayerScript / WorldScript
@@ -228,7 +228,7 @@ public:
     {
         DreamAlchemyManager::Instance().OnPlayerLogin(player);
     }
-};
+}
 
 class DreamAlchemyWorldScript : public WorldScript
 {
@@ -239,7 +239,7 @@ public:
     {
         DreamAlchemyManager::Instance().Initialize();
     }
-};
+}
 
 void AddDreamAlchemyScripts()
 {

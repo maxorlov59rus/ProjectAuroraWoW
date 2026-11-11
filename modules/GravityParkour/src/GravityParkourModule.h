@@ -52,5 +52,4 @@ private:
     std::vector<ObjectGuid> m_phasePlayers;
     mutable std::mutex m_mutex;
 };
-
 void AddGravityParkourScripts();

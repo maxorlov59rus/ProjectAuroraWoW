@@ -24,7 +24,6 @@ struct CafeEntry
     uint32_t misses = 0;
     uint32_t essences = 0;
 };
-
 class CafeManager
 {
 public:
@@ -59,5 +58,4 @@ private:
     std::map<std::string, CafeEntry> m_entries;
     mutable std::mutex m_mutex;
 };
-
 void AddCafeScripts();

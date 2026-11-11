@@ -40,7 +40,6 @@ struct ZombieInfo
     std::string spawnedLocation; // spawn coordinates
     time_t spawnTime;
 };
-
 // Global zombie manager
 class ZombieApocalypseManager
 {
@@ -107,7 +106,6 @@ private:
     uint32_t m_durationMinutes;
     uint32_t m_maxZombies;
 };
-
 // ---------- Utility functions ----------
 uint32_t GetZombieLevelForPlayer(Player* pPlayer);
 void SpawnZombieAtLocation(Player* pPlayer, const std::string& locationName);

@@ -21,9 +21,3 @@ public:
 private:
     bool m_enabled = true;
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeQuestSystemModule();
-    __declspec(dllexport) void __stdcall FinalizeQuestSystemModule();
-}

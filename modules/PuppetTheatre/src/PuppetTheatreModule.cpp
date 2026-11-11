@@ -285,7 +285,7 @@ private:
         handler->SendSysMessage("The champion's chest is yours!");
         return true;
     }
-};
+}
 
 // ============================================================================
 // PlayerScript / WorldScript
@@ -300,7 +300,7 @@ public:
     {
         PuppetTheatreManager::Instance().OnPlayerLogout(player);
     }
-};
+}
 
 class PuppetTheatreWorldScript : public WorldScript
 {
@@ -311,7 +311,7 @@ public:
     {
         PuppetTheatreManager::Instance().Initialize();
     }
-};
+}
 
 void AddPuppetTheatreScripts()
 {

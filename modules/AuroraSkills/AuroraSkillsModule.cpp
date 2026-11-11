@@ -39,7 +39,7 @@ public:
         static SkillsModule instance;
         return instance;
     }
-};
+}
 
 extern "C" void RegisterAuroraSkills()
 {

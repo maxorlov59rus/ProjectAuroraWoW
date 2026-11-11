@@ -23,7 +23,6 @@ struct CampaignNpc
     bool isBoss = false;
     bool isVendor = false;
 };
-
 // ---------- Dialogue System ----------
 struct DialogueNode
 {
@@ -33,7 +32,6 @@ struct DialogueNode
     std::string luaScript;
     bool isEnd = false;
 };
-
 // ---------- Quest Data ----------
 struct CampaignQuest
 {
@@ -48,7 +46,6 @@ struct CampaignQuest
     uint32 startNpcEntry = 0;
     uint32 endNpcEntry = 0;
 };
-
 // ---------- Boss Data ----------
 struct CampaignBoss
 {
@@ -64,7 +61,6 @@ struct CampaignBoss
     uint32 mapId = 0;
     uint32 respawnTime = 3600;
 };
-
 // ---------- Shop Data ----------
 struct CampaignShop
 {
@@ -75,7 +71,6 @@ struct CampaignShop
     float discountHorde = 0.f;
     float discountAlliance = 0.f;
 };
-
 // ============================================================================
 // CampaignOfLightManager - shared state (single instance)
 // ============================================================================

@@ -654,7 +654,7 @@ private:
 
         return true;
     }
-};
+}
 
 // ============================================================================
 // PlayerScript - login / level-up hooks
@@ -685,7 +685,7 @@ public:
 
         LOG_INFO("CampaignOfLight", "Player {} leveled up to {}", player->GetName(), player->GetLevel());
     }
-};
+}
 
 // ============================================================================
 // Static instances - auto-register via constructors
@@ -709,8 +709,6 @@ namespace
 
 
 
-
-}
 
 } // namespace
 // ============================================================================

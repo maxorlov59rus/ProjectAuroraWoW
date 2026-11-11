@@ -23,9 +23,3 @@ private:
     bool m_enabled = true;
     uint32_t m_auctionDepositPercent = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeEconomyModule();
-    __declspec(dllexport) void __stdcall FinalizeEconomyModule();
-}

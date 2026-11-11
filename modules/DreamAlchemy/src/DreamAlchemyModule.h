@@ -20,7 +20,6 @@ struct DreamState
     int64_t drunkAt = 0;      // wall clock when the potion was drunk
     uint32_t shards = 0;
 };
-
 class DreamAlchemyManager
 {
 public:
@@ -59,5 +58,4 @@ private:
     std::map<ObjectGuid, DreamState> m_states;
     mutable std::mutex m_mutex;
 };
-
 void AddDreamAlchemyScripts();

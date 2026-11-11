@@ -27,7 +27,6 @@ struct TeleportLocation
     uint32_t mapId = 0;
     std::string description;
 };
-
 // Global teleportation manager
 class TeleportationManager
 {
@@ -66,10 +65,3 @@ private:
     mutable std::mutex m_mutex;
     bool m_enabled = true;
 };
-
-// ---------- Module registration ----------
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeTeleportationModule();
-    __declspec(dllexport) void __stdcall FinalizeTeleportationModule();
-}

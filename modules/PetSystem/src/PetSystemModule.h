@@ -29,9 +29,3 @@ private:
     uint32_t m_defaultPetLevel = {};
     uint32_t m_maxPetLevel = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializePetSystemModule();
-    __declspec(dllexport) void __stdcall FinalizePetSystemModule();
-}

@@ -23,9 +23,3 @@ private:
     bool m_enabled = true;
     uint32_t m_ratedMinLevel = {};
 };
-
-
-extern "C" {
-    __declspec(dllexport) void __stdcall InitializeArenaSystemModule();
-    __declspec(dllexport) void __stdcall FinalizeArenaSystemModule();
-}

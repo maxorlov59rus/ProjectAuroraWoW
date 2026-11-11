@@ -30,7 +30,7 @@ struct BotInfo
     std::string race;
     std::string luaScript;
     bool isRunning = false;
-};
+}
 
 class BotRegistry
 {
@@ -144,7 +144,7 @@ private:
     std::vector<std::string> m_allowedRaces;
     std::string m_defaultScript = "patrol";
     bool m_startRunning = true;
-};
+}
 
 // .createbot <name> <class> <race> [script]
 bool HandleCreateBotCommand(ChatHandler* handler, std::string const& args)
@@ -225,7 +225,7 @@ public:
     {
         BotRegistry::Instance().Initialize();
     }
-};
+}
 
 } // namespace
 

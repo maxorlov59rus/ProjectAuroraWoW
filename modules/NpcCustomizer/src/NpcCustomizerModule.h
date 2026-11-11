@@ -58,10 +58,3 @@ private:
     std::vector<uint64_t> m_spawnedNpcs;
     mutable std::mutex m_mutex;
 };
-
-// ---------- Module registration ----------
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeNpcCustomizerModule();
-    __declspec(dllexport) void __stdcall FinalizeNpcCustomizerModule();
-}

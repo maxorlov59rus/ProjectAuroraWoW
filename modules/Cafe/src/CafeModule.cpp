@@ -195,7 +195,7 @@ private:
 
         return true;
     }
-};
+}
 
 // ============================================================================
 // WorldScript
@@ -210,7 +210,7 @@ public:
     {
         CafeManager::Instance().Initialize();
     }
-};
+}
 
 void AddCafeScripts()
 {
