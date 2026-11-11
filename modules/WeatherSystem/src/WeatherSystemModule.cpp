@@ -1,4 +1,4 @@
-/*
+﻿/*
  * WeatherSystem module - implementation
  *
  * Map weather control: set a weather type or trigger a timed storm.
@@ -205,23 +205,6 @@ public:
         WeatherSystemManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeWeatherSystemModule()
-    {
-        LOG_INFO("WeatherSystem", "WeatherSystem module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeWeatherSystemModule()
-    {
-        LOG_INFO("WeatherSystem", "WeatherSystem module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

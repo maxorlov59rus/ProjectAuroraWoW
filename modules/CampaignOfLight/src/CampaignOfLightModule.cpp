@@ -1,4 +1,4 @@
-/*
+﻿/*
  * CampaignOfLight module - implementation
  *
  * Alliance campaign content: NPCs, dialogues, quests, bosses, shops.
@@ -688,24 +688,6 @@ public:
 };
 
 // ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeCampaignOfLightModule()
-    {
-        CampaignOfLightManager::Instance().Initialize();
-        LOG_INFO("CampaignOfLight", "CampaignOfLight module initialized (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeCampaignOfLightModule()
-    {
-        LOG_INFO("CampaignOfLight", "CampaignOfLight module finalized");
-    }
-}
-
-// ============================================================================
 // Static instances - auto-register via constructors
 // ============================================================================
 
@@ -730,6 +712,7 @@ namespace
 
 }
 
+} // namespace
 // ============================================================================
 // AzerothCore module loader entry point.
 //

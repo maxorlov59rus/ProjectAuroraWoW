@@ -1,4 +1,4 @@
-/*
+﻿/*
  * ZombieApocalypse module - implementation
  *
  * Zombie apocalypse events: timed event, random zombie spawns, chat commands.
@@ -322,24 +322,6 @@ private:
 };
 
 // ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeZombieApocalypseModule()
-    {
-        LOG_INFO("ZombieApocalypse", "ZombieApocalypse module initialized (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeZombieApocalypseModule()
-    {
-        ZombieApocalypseManager::Instance().StopEvent();
-        LOG_INFO("ZombieApocalypse", "ZombieApocalypse module finalized");
-    }
-}
-
-// ============================================================================
 // Static instance - auto-registers via constructor
 // ============================================================================
 
@@ -360,6 +342,7 @@ namespace
 
 }
 
+} // namespace
 // ============================================================================
 // AzerothCore module loader entry point.
 //

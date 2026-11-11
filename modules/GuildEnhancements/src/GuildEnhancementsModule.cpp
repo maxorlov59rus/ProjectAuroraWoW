@@ -1,4 +1,4 @@
-/*
+﻿/*
  * GuildEnhancements module - implementation
  *
  * Guild improvements: bank, ranks and extended info.
@@ -162,23 +162,6 @@ public:
         GuildEnhancementsManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeGuildEnhancementsModule()
-    {
-        LOG_INFO("GuildEnhancements", "GuildEnhancements module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeGuildEnhancementsModule()
-    {
-        LOG_INFO("GuildEnhancements", "GuildEnhancements module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

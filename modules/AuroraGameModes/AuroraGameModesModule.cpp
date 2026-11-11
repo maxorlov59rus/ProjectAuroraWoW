@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AuroraGameModesModule - loadable AzerothCore module
  *
  * Entry point for the game-modes module. Registered through
@@ -115,7 +115,7 @@ namespace {
 
 
 
-} // namespace Aurora
+} // namespace
 
 } // namespace Aurora
 

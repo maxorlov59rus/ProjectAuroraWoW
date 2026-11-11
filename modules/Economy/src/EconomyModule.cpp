@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Economy module - implementation
  *
  * Custom economy hooks: auctions, currencies and exchanges.
@@ -163,23 +163,6 @@ public:
         EconomyManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeEconomyModule()
-    {
-        LOG_INFO("Economy", "Economy module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeEconomyModule()
-    {
-        LOG_INFO("Economy", "Economy module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

@@ -5,50 +5,60 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  World of Warcraft Wotlk-клиент  (WoW Client)                 │
-│  ── TCP/UDP с WorldServer (1119-1121, пакеты WOTLK) ──       │
-│  ── Вход в AuthServer для логина ──                          │
+│  ── TCP к WorldServer (порт 8085 по умолчанию) ──            │
+│  ── Вход в AuthServer (порт 3724) ──                         │
 └───────────────────────────┬──────────────────────────────────┘
                             │ WoW-пакеты
 ┌───────────────────────────▼──────────────────────────────────┐
 │  AzerothCore (World of Warcraft Wotlk server emulator)       │
 │  WorldServer  (map, NPC, combat, quests, items, loot...)     │
-│  AuthServer   (рассылка ключей, логины, группы)              │
-│  Modules      (триал, квесты, бои и т.д.)                    │
+│  AuthServer   (логины, realm list)                           │
+│  Modules      (static-линковка, см. docs/BUILDING.md)        │
 └───────────────────────────┬──────────────────────────────────┘
                             │ расширения/кастомизация
 ┌───────────────────────────▼──────────────────────────────────┐
 │  Aurora (ваш проект, C++17)                                   │
-│  src/Aurora/           — кастомная бизнес-логика              │
-│  modules/              — загружаемые модули                    │
-│  src/AuroraTools/      — загрузка и администрирование БД       │
-└────────────────────────────────────────────────────────────────┘
+│  src/Aurora/           — кастомная бизнес-логика (AuroraCore) │
+│  modules/              — модули, собираемые в worldserver     │
+│  src/AuroraTools/      — утилиты БД и чтения INI              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Процесс запроса клиентом
+## Процесс подключения клиента
 
 ```
-Клиент WoW → запрос в AuthServer (TCP 3724/8085)
-AuthServer → выдаёт ключ сессии / рассылает сессию
-Клиент → выбирает сервер → подключение к WorldServer (1119/1121 TCP)
-WorldServer → инициализация мира, квесты, комбо, npcs, мапы, pvp
+Клиент WoW → AuthServer (TCP 3724) → проверка логина/пароля
+AuthServer → выдаёт список реалмов и адрес WorldServer
+Клиент → WorldServer (TCP 8085, конфигурируется в worldserver.conf)
+WorldServer → инициализация мира, квесты, NPC, карты, PvP
 ```
 
 ## Как Aurora кастомизирует AzerothCore
 
-1. **src/Aurora/** — «ядро» кастомизации. Не является загружаемым модулем,
-   а собирается внутрь проекта и предоставляет хуки/минфикторы/отдельный логи.
-2. **modules/AuroraSkills**, **AuroraSkins**, **AuroraGameModes** —
-   загружаемые AzerothCore модули (`.dll`/`.so`), подключаются через
-   `modules/` конфиг сервера и получают полный доступ к API AzerothCore.
-3. **conf/** — конфигурации серверов (authserver.conf, worldserver.conf),
-   переопределённые для Aurora.
-4. **databases/** — схема БД, подходящая под AzerothCore + Aurora-таблицы.
+1. **`src/Aurora/`** — слой `AuroraCore` (static lib). Собирается **внутрь**
+   дерева AC в `src/server/AuroraCore/` и линкуется в `game-interface`,
+   поэтому его заголовки видны всем модулям. Содержит:
+   - `AuroraLogging` — обёртка над диагностикой;
+   - `AuroraModuleSettings` — типизированное чтение `Aurora.<Module>.*`;
+   - `AuroraSkills`, `AuroraSkins`, `AuroraGameMode`, `AuroraInterface`;
+   - `AuroraBot` — базовый класс бота (требует AC-заголовков, сейчас не в target).
+2. **`modules/Aurora*`, `modules/<Name>`** — модули AzerothCore,
+   **статически** собираемые в `worldserver.exe` (`MODULE_<NAME> = static`).
+   Точка входа — функция `Add<Name>Scripts()`, которую вызывает
+   сгенерированный `ModulesLoader.cpp` из `sScriptMgr->Initialize()`.
+3. **`conf/`** — корневой каталог проекта не содержит конфигов;
+   рабочие файлы создаются рядом с бинарниками AC
+   (`configs/worldserver.conf`, `configs/modules/aurora_*.conf`).
+4. **`databases/`** — дополнительные таблицы Aurora
+   (`campaign_*`, `bots`, `classless_players`). Основные схемы
+   (`acore_auth`, `acore_characters`, `acore_world`) создаёт установщик AC.
 
 ## Зависимости
 
 - C++17
 - CMake ≥ 3.16
 - Windows: Visual Studio 2022, MSVC
-- Linux: GCC ≥ 11 / Clang, Ninja или Make
+- Linux: GCC ≥ 11 / Clang ≥ 14, Ninja или Make
 - MySQL 5.7 или 8.x (AzerothCore требует MySQL, не PostgreSQL)
-- Babelfish (для преобразования C++ → .wow пакеты при необходимости)
+- Boost ≥ 1.78 (Windows — статические `.lib` для toolset)
+- Python 3.9+ — только для скриптов миграции, в рантайме не нужен

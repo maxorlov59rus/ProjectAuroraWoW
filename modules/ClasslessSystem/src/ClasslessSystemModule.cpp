@@ -1,4 +1,4 @@
-/*
+﻿/*
  * ClasslessSystem module - implementation
  *
  * Classless characters: the role comes from spent skill points instead of a
@@ -295,23 +295,6 @@ private:
 };
 
 // ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeClasslessSystemModule()
-    {
-        LOG_INFO("ClasslessSystem", "ClasslessSystem module initialized (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeClasslessSystemModule()
-    {
-        LOG_INFO("ClasslessSystem", "ClasslessSystem module finalized");
-    }
-}
-
-// ============================================================================
 // Static instance - auto-registers via constructor
 // ============================================================================
 
@@ -332,6 +315,7 @@ namespace
 
 }
 
+} // namespace
 // ============================================================================
 // AzerothCore module loader entry point.
 //

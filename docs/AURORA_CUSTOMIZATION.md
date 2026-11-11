@@ -1,90 +1,92 @@
 # Как добавить кастомизацию «Аврора»
 
-## 1. Скины персонажей (AuroraSkins)
+Все модули Aurora собираются **статически** в `worldserver.exe` через
+механизм модулей AzerothCore (`MODULE_<NAME> = static` в
+`AC/conf/config.cmake`). Отдельные `.dll` не создаются. Подробнее о сборке —
+[`BUILDING.md`](BUILDING.md).
 
-Модуль `AuroraSkills` — это загружаемый AzerothCore-модуль. Структура:
+## Общая структура модуля
 
 ```
-modules/AuroraSkins/
-├── CMakeLists.txt
-├── AuroraSkinsModule.cpp
-└── AuroraSkinsModule.h
+modules/<Name>/
+├── conf/aurora_<name>.conf.dist   # опции Aurora.<Module>.*
+└── src/
+    ├── <Name>Module.cpp           # точка входа Add<Name>Scripts()
+    └── <Name>Module.h             # опционально
 ```
 
-Пример `CMakeLists.txt` (стандарт для AzerothCore):
+В `.cpp` обязательна функция:
 
-```cmake
-add_library(AuroraSkins MODULE
-    AuroraSkinsModule.cpp
-    AuroraSkinsModule.h
-)
-
-target_link_libraries(AuroraSkins PRIVATE
-    AzerothCoreLib
-    ${MYSQL_LIBRARIES}
-)
-
-set_target_properties(AuroraSkins PROPERTIES
-    PREFIX "mod_"
-    OUTPUT_NAME "AuroraSkins"
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-    POSITION_INDEPENDENT_CODE ON
-)
-```
-
-Зарегистрируйте модуль в `worldserver.conf`:
-
-```ini
-modules
+```cpp
+void Add<Name>Scripts()
 {
-    AuroraSkins.dll
+    new <Name>WorldScript();   // скрипты создаются здесь, не статиками
 }
 ```
 
-## 2. Кастомизация игровых режимов (AuroraGameModes)
+Её вызывает сгенерированный `ModulesLoader.cpp` из `sScriptMgr->Initialize()`.
+Скрипт внутри читает опции в `OnStartup()`:
 
-Размещайте в `modules/AuroraGameModes/` схожим образом. Там вы можете:
+```cpp
+void OnStartup() override
+{
+    if (!Aurora::Settings::Enabled("Aurora.<Module>.Enabled", "<Name>"))
+        return;
 
-- переопределять функции инициализации сцены;
-- подключать свои боевые режимы;
-- управлять петлей режимов (мгновенный запуск, тренировки и т.д.).
+    m_value = Aurora::Settings::Bounded<int>(
+        "Aurora.<Module>.Value", 10, 0, 100, "<Name>");
+}
+```
+
+Нельзя создавать скрипты файловыми объектами
+(`namespace { FooScript sFoo; }`) — это падает в
+`ScriptRegistry<T>::_checkMemory`. Конвертер старых модулей:
+`python scripts/convert_script_registration.py`.
+
+## 1. Скины персонажей (AuroraSkins)
+
+Модуль `AuroraSkins` читает `Aurora.Skins.Enabled` и
+`Aurora.Skins.Default`. Значение по умолчанию попадает в
+`Aurora::Skins::SetDefaultSkin()` и отдаётся `GetSkinFor()` для персонажей
+без явного скина.
+
+Клиентская часть не управляется сервером: сервер передаёт только идентификатор
+скина, отрисовка — на стороне клиента.
+
+## 2. Игровые режимы (AuroraGameModes)
+
+Настраиваются `Aurora.GameModes.Allowed` (список допустимых) и
+`Aurora.GameModes.Default`. Если `Default` отсутствует в `Allowed`, берётся
+первый элемент списка и пишется предупреждение в лог.
 
 ## 3. Навыки (AuroraSkills)
 
-В модуле `AuroraSkills` вы можете:
-
-- добавлять кастомерские навыки;
-- перехватывать расчёт очков опыта;
-- дополнять таблицу навыков (DB); — обратитесь к исходникам AzerothCore
-  для построения `character_db2.sql` с вашими навыками.
+`Aurora.Skills.Enabled` включает слой, `Aurora.Skills.LogHooks` — построчные
+логи на хуках опыта и навыков (по умолчанию выключено). Сами навыки
+регистрируются в таблицах `acore_characters` / `acore_world`, а не в
+`character_db2.sql` (такого файла в AC нет).
 
 ## 4. Интерфейс и логотип (AuroraInterface)
 
-В `docs/AURORA_CUSTOMIZATION.md` описано, как:
+`Aurora::Interface` — серверный заготовок для отправки сообщений клиенту.
+Изменения UI, логотипа и `.pak`-ресурсов выполняются на клиенте локально и
+не управляются конфигом сервера.
 
-- менять текстовые строки сервера;
-- подменять логотип и скины клиентского UI;
-- подключать свои .pak-файлы/ресурсы, если клиент разрешает.
+## 5. Настройки
 
-> Важно: WoW-клиент не разрешает гибкую замену UI через конфиг сервера.
-> Любые изменения в клиенте (скрины, иконки, локализация) делаются локально
-> и недоступны при обновлении клиента. Для массового распространения
-> изменений нужен модифицированный клиент, который мы не распространяем.
-
-## 5. Настроки
-
-Все кастомизации читаются из `Aurora/conf/` через AzerothCore-конфиг:
+Все кастомизации читаются из `configs/modules/aurora_*.conf` через
+`WorldScript::OnStartup`:
 
 ```ini
-aurora
-{
-    enabled yes
-    log_level info
-    game_mode standard
-    skin_default "default"
-}
+Aurora.Skins.Enabled = 1
+Aurora.Skins.Default = "default"
 ```
 
-Параметры читаются в `src/Aurora/` через структуру настроек AzerothCore
-(`Config*` API) или через свой кастомный парсер (см. `AuroraTools`).
+Общие правила:
+
+- каждый модуль пишет только свои `Aurora.<Module>.*`;
+- список значений через `Aurora::Settings::List()` и `Contains()`;
+- числовые значения — через `Bounded()` с явным диапазоном;
+- рабочие `.conf` генерирует `scripts/migrate_to_ac.py`;
+- после добавления нового `.conf.dist` нужен повторный запуск миграции и
+  `cmake -S ... -B ...`, иначе `CONFIG_FILE_LIST` не обновится.

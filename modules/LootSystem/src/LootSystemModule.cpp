@@ -1,4 +1,4 @@
-/*
+﻿/*
  * LootSystem module - implementation
  *
  * Loot tuning: drop rates, loot inspection and reset.
@@ -178,23 +178,6 @@ public:
         LootSystemManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeLootSystemModule()
-    {
-        LOG_INFO("LootSystem", "LootSystem module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeLootSystemModule()
-    {
-        LOG_INFO("LootSystem", "LootSystem module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

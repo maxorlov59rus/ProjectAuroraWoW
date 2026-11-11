@@ -1,4 +1,4 @@
-/*
+﻿/*
  * QuestSystem module - implementation
  *
  * Custom quest helpers: creation, inspection and completion.
@@ -159,23 +159,6 @@ public:
         QuestSystemManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeQuestSystemModule()
-    {
-        LOG_INFO("QuestSystem", "QuestSystem module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeQuestSystemModule()
-    {
-        LOG_INFO("QuestSystem", "QuestSystem module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

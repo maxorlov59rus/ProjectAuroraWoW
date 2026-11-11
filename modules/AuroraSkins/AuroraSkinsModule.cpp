@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AuroraSkinsModule - loadable AzerothCore module
  *
  * Entry point for the skins module. Registered through
@@ -100,7 +100,7 @@ namespace {
 
 
 
-} // namespace Aurora
+} // namespace
 
 } // namespace Aurora
 

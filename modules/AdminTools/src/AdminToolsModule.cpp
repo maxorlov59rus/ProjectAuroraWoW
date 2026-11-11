@@ -1,4 +1,4 @@
-/*
+﻿/*
  * AdminTools module - implementation
  *
  * GM helpers: admin panel, server info and an umbrella command.
@@ -173,23 +173,6 @@ public:
         AdminToolsManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeAdminToolsModule()
-    {
-        LOG_INFO("AdminTools", "AdminTools module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeAdminToolsModule()
-    {
-        LOG_INFO("AdminTools", "AdminTools module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

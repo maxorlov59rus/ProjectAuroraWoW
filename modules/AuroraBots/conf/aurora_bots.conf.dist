@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # AuroraBots module configuration
 #
 # Loaded by worldserver from configs/modules/aurora_bots.conf after worldserver.conf.
@@ -34,9 +34,9 @@ Aurora.Bots.AllowedRaces = "HUMAN,DRAENEI,NIGHT_ELF,GNOME,DWARF,ORC,UNDEAD,TAURE
 #    Aurora.Bots.DefaultScript
 #        Behaviour script given to a bot created without an explicit one.
 #        Empty means the bot is registered without a script.
-#        Default:     "scripts/bots/patrol.lua"
+#        Default:     "patrol"
 
-Aurora.Bots.DefaultScript = "scripts/bots/patrol.lua"
+Aurora.Bots.DefaultScript = "patrol"
 
 #    Aurora.Bots.StartRunning
 #        Mark newly created bots as running, i.e. their AI starts immediately.

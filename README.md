@@ -43,55 +43,50 @@ Aurora/
 
 ## Быстрый старт (Windows)
 
+> Сборка выполняется **в дереве AzerothCore**, а не в этой папке. Подробности:
+> [`docs/BUILDING.md`](docs/BUILDING.md).
+
 ### 1. Подготовка
 
-1. Скачайте/положите **AzerothCore Wotlk** по пути `E:/azerothcore-wotlk-master` (или укажите другой при конфигурации).
-2. Скопируйте **WoW Wotlk-клиент** в `Aurora/externals/WoWClient/`.
-3. Установите **Microsoft Visual Studio 2022** с компонентами:
+1. Клонируйте **AzerothCore Wotlk** куда угодно, например в `E:\azerothcore-wotlk-master`.
+2. Установите **Microsoft Visual Studio 2022** с компонентами:
    - «C++ наборы разработчика»
    - «Windows 10/11 SDK»
    - «Средства сборки CMake»
-4. Установите **MySQL** или **MariaDB** (5.7 / 8.x) и запустите сервер.
+3. Установите **MySQL** или **MariaDB** (5.7 / 8.x) и запустите сервер.
+4. Соберите **Boost** статически (см. `docs/BUILDING.md`).
 
-### 2. Конфигурация БД
+### 2. БД
 
-Импортируйте схему из `Aurora/databases/`, либо from `E:/azerothcore-wotlk-master/:` (при необходимости скопируйте схему из оригиналов AzerothCore в `Aurora/databases/`).
-
-```
-mysql -u root -p < Aurora/databases/Auth.sql
-mysql -u root -p < Aurora/databases/World.sql
-```
-
-### 3. Сборка
-
-**Способ A — Пресеты CLion / VS Code:**
+Базовые схемы создаёт установщик AzerothCore
+(`data/sql/create/create_mysql.sql`). Дополнительные таблицы Aurora:
 
 ```
-cmake --preset windows-ninja
-cmake --build --preset windows-ninja
+mysql -u root -p acore_world < databases/CampaignOfLight.sql
+mysql -u root -p acore_world < databases/CampaignOfLight_data.sql
 ```
 
-**Способ B — Visual Studio 2022:**
+### 3. Миграция и сборка
 
 ```
-cmake -S . -B build/vs2022 -G "Visual Studio 17 2022"
-cmake --build build/vs2022 --config Release
+python scripts\migrate_to_ac.py --ac E:\azerothcore-wotlk-master
+cmake -S E:\azerothcore-wotlk-master -B E:\azerothcore-wotlk-master\build ^
+      -G "Visual Studio 17 2022" -DBoost_ROOT=C:\local\boost_1_92_0\vc143
+cmake --build E:\azerothcore-wotlk-master\build --config RelWithDebInfo
 ```
 
-**Способ C — Скрипт:**
-
-```
-scripts\build_win.bat
-```
+`--dry-run` у скрипта миграции покажет, что будет изменено, без записи файлов.
 
 ### 4. Запуск
 
 ```
-scripts\run_auth.sh     # Windows: scripts\run_auth.bat
-scripts\run_world.sh    # Windows: scripts\run_world.bat
+cd E:\azerothcore-wotlk-master\build\bin\RelWithDebInfo
+authserver.exe
+worldserver.exe
 ```
 
-Сервер запустится с конфигами из `Aurora/conf/`.
+Конфиги лежат рядом с бинарниками: `configs/worldserver.conf`,
+`configs/authserver.conf`, `configs/modules/aurora_*.conf`.
 
 ## Лицензии
 

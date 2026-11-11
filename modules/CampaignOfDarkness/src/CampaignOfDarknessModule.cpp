@@ -1,4 +1,4 @@
-/*
+﻿/*
  * CampaignOfDarkness module - implementation
  *
  * Horde campaign content: NPCs, dialogues, quests, bosses, shops.
@@ -587,24 +587,6 @@ public:
 };
 
 // ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeCampaignOfDarknessModule()
-    {
-        CampaignOfDarknessManager::Instance().Initialize();
-        LOG_INFO("CampaignOfDarkness", "CampaignOfDarkness module initialized (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeCampaignOfDarknessModule()
-    {
-        LOG_INFO("CampaignOfDarkness", "CampaignOfDarkness module finalized");
-    }
-}
-
-// ============================================================================
 // Static instances - auto-register via constructors
 // ============================================================================
 
@@ -627,6 +609,7 @@ namespace
 
 }
 
+} // namespace
 // ============================================================================
 // AzerothCore module loader entry point.
 //

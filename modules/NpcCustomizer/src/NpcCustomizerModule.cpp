@@ -1,4 +1,4 @@
-/*
+﻿/*
  * NpcCustomizer module - implementation
  *
  * Runtime customization of spawned NPCs (name, level, health, faction, flags).
@@ -283,23 +283,6 @@ private:
         return true;
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeNpcCustomizerModule()
-    {
-        LOG_INFO("NpcCustomizer", "NpcCustomizer module initialized (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeNpcCustomizerModule()
-    {
-        LOG_INFO("NpcCustomizer", "NpcCustomizer module finalized");
-    }
-}
 
 // ============================================================================
 // Static instance - auto-registers via constructor

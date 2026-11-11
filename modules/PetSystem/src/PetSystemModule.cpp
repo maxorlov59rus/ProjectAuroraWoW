@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PetSystem module - implementation
  *
  * Custom pet handling: spawning, removal and stat overrides.
@@ -214,23 +214,6 @@ public:
         PetSystemManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializePetSystemModule()
-    {
-        LOG_INFO("PetSystem", "PetSystem module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizePetSystemModule()
-    {
-        LOG_INFO("PetSystem", "PetSystem module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

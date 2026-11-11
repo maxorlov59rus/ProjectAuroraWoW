@@ -1,4 +1,4 @@
-/*
+﻿/*
  * ArenaSystem module - implementation
  *
  * Arena team helpers: queueing, ranks and per-team statistics.
@@ -174,23 +174,6 @@ public:
         ArenaSystemManager::Instance().Initialize();
     }
 };
-
-// ============================================================================
-// Module entry points (for the old .dll loader)
-// ============================================================================
-
-extern "C"
-{
-    __declspec(dllexport) void __stdcall InitializeArenaSystemModule()
-    {
-        LOG_INFO("ArenaSystem", "ArenaSystem module loaded (scripts auto-register)");
-    }
-
-    __declspec(dllexport) void __stdcall FinalizeArenaSystemModule()
-    {
-        LOG_INFO("ArenaSystem", "ArenaSystem module finalized");
-    }
-}
 
 // ============================================================================
 // AzerothCore module loader entry point.

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AuroraSkillsModule - loadable AzerothCore module
  *
  * Entry point for the skills module. Registered through
@@ -91,7 +91,7 @@ namespace {
 
 
 
-} // namespace Aurora
+} // namespace
 
 } // namespace Aurora
 

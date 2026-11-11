@@ -1,21 +1,23 @@
-# Инструкция по сборке
+# Сборка Aurora на AzerothCore
 
 ## Архитектура сборки
 
-Aurora использует **штатный механизм AzerothCore**: AC является верхним
-CMake-проектом, а модули Aurora подключаются через его собственный механизм
-`modules/`. Это единственная конфигурация, которую поддерживает upstream.
+Aurora — это **не самостоятельный CMake-проект**. Единственная поддерживаемая
+схема: AzerothCore является верхним CMake-проектом, а исходники Aurora
+копируются в его дерево скриптом миграции.
 
 ```
-azerothcore-wotlk (верхний CMake-проект)
-├── src/server/AuroraCore/   <- Aurora core layer (static lib)
-├── modules/<Name>/src/      <- модули Aurora (static-линковка в worldserver)
-└── conf/config.cmake        <- выбор включённых модулей
+azerothcore-wotlk/                       <- верхний CMake-проект
+├── src/server/AuroraCore/               <- слой Aurora (static lib), шаг 2
+├── modules/<Name>/src/*.cpp             <- модули Aurora (static-линковка в worldserver)
+└── conf/config.cmake                    <- MODULE_<NAME> = static | disabled
 ```
 
-Почему так, а не `add_subdirectory(azerothcore)`: AC резолвит свои макросы,
-`conf/` и `modules/` относительно `CMAKE_SOURCE_DIR`. При вложенном
-подключении `CMAKE_SOURCE_DIR` указывает на Aurora, и конфигурация AC падает.
+Корневой `CMakeLists.txt` в Aurora-репозитории оставлен только для IDE
+(навигация по файлам и подсветка). Он **не является** способом сборки
+рабочего сервера: `add_subdirectory(azerothcore)` ломает конфигурацию AC,
+потому что AC резолвит свои макросы, `conf/` и `modules/` относительно
+`CMAKE_SOURCE_DIR`.
 
 ## Требования
 
@@ -25,6 +27,7 @@ azerothcore-wotlk (верхний CMake-проект)
 | CMake | ≥ 3.16 | ≥ 3.16 |
 | Boost | ≥ 1.78, **статические** lib для вашего toolset | ≥ 1.74 |
 | БД | MySQL 5.7/8 | MySQL 5.7/8 |
+| Python | 3.9+ (для скриптов миграции) | 3.9+ |
 
 ### Boost (Windows)
 
@@ -42,15 +45,19 @@ b2 toolset=msvc-14.3 --with-filesystem --with-program_options ^
 
 ## 1. Миграция исходников Aurora в дерево AC
 
-Исходники модулей живут в репозитории Aurora (`Aurora/modules/`), а в дерево
-AC копируются скриптом миграции. Он идемпотентен: правки в Aurora-репозитории
-достаточно перенести повторным запуском.
-
 ```bat
-python scripts\migrate_to_ac.py
+python scripts\migrate_to_ac.py --ac E:\azerothcore-wotlk-master
 ```
 
-Скрипт делает шесть вещей:
+Полезные флаги:
+
+```
+--ac PATH        путь к дереву AC (обязательный)
+--aurora PATH    путь к репозиторию Aurora (по умолчанию — родитель скрипта)
+--dry-run        только показать, что будет сделано, ничего не записывая
+```
+
+Скрипт делает шесть шагов:
 
 1. Прописывает `add_subdirectory(AuroraCore)` в `src/server/CMakeLists.txt`
    AC и добавляет `AuroraCore` в `game-interface`, чтобы include-пути
@@ -61,16 +68,14 @@ python scripts\migrate_to_ac.py
    которую вызывает генерируемый AC `ModulesLoader.cpp`.
 4. Пишет `AC/conf/config.cmake` со списком включённых/отключённых модулей.
 5. Создаёт рабочие конфиги рядом с бинарниками: `configs/worldserver.conf`,
-   `configs/authserver.conf` (из `.dist` AC) и `configs/modules/aurora_*.conf`
-   (из `conf/*.conf.dist` модулей). Существующие файлы не перезаписываются —
-   в них могут быть локальные настройки.
-6. Кладёт рядом с `worldserver.exe` runtime-библиотеки, которых нет в `PATH`:
-   `libmysql.dll`, `libcrypto-*.dll`, `libssl-*.dll` и провайдер `legacy.dll`.
-   Без последнего AC падает assert'ом `Not found 'legacy.dll'` ещё до вывода
-   лога.
+   `configs/authserver.conf` и `configs/modules/aurora_*.conf`.
+   Существующие файлы не перезаписываются.
+6. Кладёт рядом с `worldserver.exe` runtime-библиотеки: `libmysql.dll`,
+   `libcrypto-*.dll`, `libssl-*.dll` и `legacy.dll`. Без `legacy.dll` AC
+   падает assert'ом ещё до вывода лога.
 
-Файлы AC остаются вне git-репозитория Aurora — единственным источником истины
-для кода модулей считается Aurora-репозиторий.
+Файлы AC остаются вне git-репозитория Aurora — единственным источником
+истины для кода модулей считается Aurora-репозиторий.
 
 ### Управление списком модулей
 
@@ -88,8 +93,7 @@ cmake -S E:\azerothcore-wotlk-master -B E:\azerothcore-wotlk-master\build ^
 cmake --build E:\azerothcore-wotlk-master\build --config RelWithDebInfo
 ```
 
-Быстрая проверка одного модуля без сборки всего ядра — цель `modules`
-(собирает статическую библиотеку со всеми включёнными модулями):
+Быстрая проверка одного модуля без сборки всего ядра — цель `modules`:
 
 ```bat
 cmake --build E:\azerothcore-wotlk-master\build --target modules --config RelWithDebInfo
@@ -97,43 +101,33 @@ cmake --build E:\azerothcore-wotlk-master\build --target modules --config RelWit
 
 ## 3. БД
 
+Схема characters/world/auth создаётся установщиком AC:
+
 ```bash
-mysql -u root -p < Aurora/databases/Auth.sql
-mysql -u root -p < Aurora/databases/World.sql
-mysql -u root -p < Aurora/databases/Characters.sql
+mysql -u root -p < E:/azerothcore-wotlk-master/data/sql/create/create_mysql.sql
 ```
+
+Дополнительные таблицы Aurora лежат в `Aurora/databases/`:
+
+```bash
+mysql -u root -p acore_world < Aurora/databases/CampaignOfLight.sql
+mysql -u root -p acore_world < Aurora/databases/CampaignOfLight_data.sql
+```
+
+> Внимание: `CampaignOfLight.sql` и `CampaignOfDarkness.sql` создают
+> одинаковую таблицу `campaign_npcs`. Импортируйте **один** из них, если
+> планируете использовать обе кампании — см. TODO в issue-трекере.
 
 ## 4. Запуск
 
-### Windows
 ```bat
-scripts\run_auth.bat
-scripts\run_world.bat
+cd E:\azerothcore-wotlk-master\build\bin\RelWithDebInfo
+authserver.exe
+worldserver.exe
 ```
 
-### Linux
-```bash
-./scripts/run_auth.sh RelWithDebInfo
-./scripts/run_world.sh RelWithDebInfo
-```
-
-## Структура бинарников после сборки
-
-```
-azerothcore-wotlk/build/bin/RelWithDebInfo/
-├── authserver.exe
-├── worldserver.exe
-├── configs/
-│   ├── worldserver.conf, authserver.conf
-│   └── modules/aurora_*.conf   (по одному на модуль)
-├── libmysql.dll, libcrypto-*.dll, libssl-*.dll, legacy.dll
-└── skills/                 (dynamic-модули, если MODULES=dynamic)
-```
-
-При `MODULES=static` (значение по умолчанию в `conf/config.cmake`) код
-модулей уже встроен в `worldserver.exe`, отдельных `.dll` модулей не требуется.
-Перечисленные выше библиотеки — сторонние runtime-зависимости самого ядра
-(MySQL client и OpenSSL), их копирует шаг 6 скрипта миграции.
+Рабочие конфиги лежат рядом: `configs/worldserver.conf`,
+`configs/authserver.conf`, `configs/modules/aurora_*.conf`.
 
 ## Конфигурация модулей
 
@@ -146,13 +140,13 @@ azerothcore-wotlk/build/bin/RelWithDebInfo/
 CMake-конфигурации**, поэтому после добавления нового `.conf.dist` нужно:
 
 ```bat
-python scripts\migrate_to_ac.py
+python scripts\migrate_to_ac.py --ac E:\azerothcore-wotlk-master
 cmake -S E:\azerothcore-wotlk-master -B E:\azerothcore-wotlk-master\build
 ```
 
 Модули читают свои опции в `WorldScript::OnStartup` — этот хук выполняется уже
-после `sConfigMgr->LoadModulesConfigs()`, в отличие от статических
-инициализаторов. Проверить, что конфиги подхватились, можно без БД:
+после `sConfigMgr->LoadModulesConfigs()`. Проверить, что конфиги подхватились,
+можно без БД:
 
 ```bat
 worldserver.exe --dry-run
@@ -179,11 +173,10 @@ worldserver.exe --dry-run
 `src/server/game/Scripting/ScriptDefines/<Kind>Script.h`.
 
 **ACCESS_VIOLATION в `ScriptRegistry<T>::_checkMemory` при запуске** — скрипт
-создан файловым объектом (`namespace { FooScript sFoo; }`). Такая регистрация
-выполняется в `_initterm`, до конструктора статиков реестра. Скрипты нужно
-создавать внутри `Add<Name>Scripts()` (`new FooScript();`) — её вызывает
-`sScriptMgr->Initialize()`. Перевод существующих модулей:
+создан файловым объектом (`namespace { FooScript sFoo; }`). Такую регистрацию
+надо делать внутри `Add<Name>Scripts()`. Перевод существующих модулей:
 `python scripts\convert_script_registration.py`.
 
 **`Not found 'legacy.dll'`** — рядом с `worldserver.exe` нет провайдера
-`legacy.dll` и библиотек OpenSSL/MySQL. Их раскладывает шаг 6 `migrate_to_ac.py`.
+`legacy.dll` и библиотек OpenSSL/MySQL. Их раскладывает шаг 6
+`migrate_to_ac.py`.
