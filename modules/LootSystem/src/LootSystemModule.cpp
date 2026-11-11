@@ -1,4 +1,4 @@
-﻿/*
+/*
  * LootSystem module - implementation
  *
  * Loot tuning: drop rates, loot inspection and reset.
@@ -162,7 +162,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -177,7 +177,7 @@ public:
     {
         LootSystemManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

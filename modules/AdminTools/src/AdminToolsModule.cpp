@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AdminTools module - implementation
  *
  * GM helpers: admin panel, server info and an umbrella command.
@@ -157,7 +157,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -172,7 +172,7 @@ public:
     {
         AdminToolsManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

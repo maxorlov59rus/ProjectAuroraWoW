@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ArenaSystem module - implementation
  *
  * Arena team helpers: queueing, ranks and per-team statistics.
@@ -158,7 +158,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -173,7 +173,7 @@ public:
     {
         ArenaSystemManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

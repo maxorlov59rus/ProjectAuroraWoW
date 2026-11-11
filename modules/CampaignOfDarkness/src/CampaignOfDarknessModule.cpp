@@ -1,4 +1,4 @@
-﻿/*
+/*
  * CampaignOfDarkness module - implementation
  *
  * Horde campaign content: NPCs, dialogues, quests, bosses, shops.
@@ -564,7 +564,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // PlayerScript - login / level-up hooks
@@ -584,7 +584,7 @@ public:
     {
         CampaignOfDarknessManager::Instance().OnPlayerLevelUp(player);
     }
-}
+};
 
 // ============================================================================
 // Static instances - auto-register via constructors

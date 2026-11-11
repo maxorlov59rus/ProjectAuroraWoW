@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PetSystem module - implementation
  *
  * Custom pet handling: spawning, removal and stat overrides.
@@ -198,7 +198,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -213,7 +213,7 @@ public:
     {
         PetSystemManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

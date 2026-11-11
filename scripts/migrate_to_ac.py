@@ -113,7 +113,14 @@ def adapt_to_ac(text: str) -> str:
     # LOG_INFO must include Log.h itself.
     if "LOG_INFO(" in text or "LOG_ERROR(" in text:
         if '#include "Log.h"' not in text:
-            text = '#include "Log.h"\n' + text
+            # A leading UTF-8 BOM must stay at the very start of the file:
+            # writing the include before it turns the BOM into a stray token
+            # and MSVC fails with C2144/C4430 at line 1.
+            bom = "\ufeff" if text.startswith("\ufeff") else ""
+            if bom:
+                text = bom + '#include "Log.h"\n' + text[len(bom):]
+            else:
+                text = '#include "Log.h"\n' + text
 
     # AzerothCore renamed the level accessor.
     text = text.replace("->getLevel()", "->GetLevel()")

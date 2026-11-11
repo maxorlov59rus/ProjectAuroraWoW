@@ -287,7 +287,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // PlayerScript / WorldScript
@@ -302,7 +302,7 @@ public:
     {
         ChronosculptorManager::Instance().OnPlayerUpdate(player, diff);
     }
-}
+};
 
 class ChronosculptorWorldScript : public WorldScript
 {
@@ -318,7 +318,7 @@ public:
     {
         ChronosculptorManager::Instance().Tick();
     }
-}
+};
 
 void AddChronosculptorScripts()
 {

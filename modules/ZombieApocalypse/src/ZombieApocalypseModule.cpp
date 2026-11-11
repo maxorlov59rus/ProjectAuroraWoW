@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ZombieApocalypse module - implementation
  *
  * Zombie apocalypse events: timed event, random zombie spawns, chat commands.
@@ -319,7 +319,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // Static instance - auto-registers via constructor

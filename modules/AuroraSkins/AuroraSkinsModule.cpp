@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AuroraSkinsModule - loadable AzerothCore module
  *
  * Entry point for the skins module. Registered through
@@ -39,7 +39,7 @@ public:
         static SkinsModule instance;
         return instance;
     }
-}
+};
 
 extern "C" void RegisterAuroraSkins()
 {

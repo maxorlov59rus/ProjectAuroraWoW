@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AuroraGameModesModule - loadable AzerothCore module
  *
  * Entry point for the game-modes module. Registered through
@@ -40,7 +40,7 @@ public:
         static GameModesModule instance;
         return instance;
     }
-}
+};
 
 extern "C" void RegisterAuroraGameModes()
 {

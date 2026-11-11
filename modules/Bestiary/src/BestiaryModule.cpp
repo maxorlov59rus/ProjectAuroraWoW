@@ -192,7 +192,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -207,7 +207,7 @@ public:
     {
         BestiaryManager::Instance().Initialize();
     }
-}
+};
 
 void AddBestiaryScripts()
 {

@@ -204,7 +204,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // PlayerScript / WorldScript
@@ -219,7 +219,7 @@ public:
     {
         GravityParkourManager::Instance().OnPlayerUpdate(player, diff);
     }
-}
+};
 
 class GravityParkourWorldScript : public WorldScript
 {
@@ -230,7 +230,7 @@ public:
     {
         GravityParkourManager::Instance().Initialize();
     }
-}
+};
 
 void AddGravityParkourScripts()
 {

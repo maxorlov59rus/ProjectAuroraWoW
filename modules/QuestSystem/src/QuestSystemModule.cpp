@@ -1,4 +1,4 @@
-﻿/*
+/*
  * QuestSystem module - implementation
  *
  * Custom quest helpers: creation, inspection and completion.
@@ -143,7 +143,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -158,7 +158,7 @@ public:
     {
         QuestSystemManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

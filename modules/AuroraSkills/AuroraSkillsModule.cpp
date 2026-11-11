@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AuroraSkillsModule - loadable AzerothCore module
  *
  * Entry point for the skills module. Registered through
@@ -39,7 +39,7 @@ public:
         static SkillsModule instance;
         return instance;
     }
-}
+};
 
 extern "C" void RegisterAuroraSkills()
 {

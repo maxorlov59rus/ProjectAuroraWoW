@@ -13,7 +13,7 @@
 #include <WorldScript.h>
 #include <Player.h>
 #include <Chat.h>
-#include <Guid.h>
+#include <ObjectGuid.h>
 
 #include <algorithm>
 #include <map>
@@ -225,7 +225,7 @@ public:
     {
         BotRegistry::Instance().Initialize();
     }
-}
+};
 
 } // namespace
 

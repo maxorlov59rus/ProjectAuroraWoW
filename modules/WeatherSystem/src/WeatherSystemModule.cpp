@@ -1,4 +1,4 @@
-﻿/*
+/*
  * WeatherSystem module - implementation
  *
  * Map weather control: set a weather type or trigger a timed storm.
@@ -189,7 +189,7 @@ private:
         return true;
     }
 
-}
+};
 
 // ============================================================================
 // WorldScript
@@ -204,7 +204,7 @@ public:
     {
         WeatherSystemManager::Instance().Initialize();
     }
-}
+};
 
 // ============================================================================
 // AzerothCore module loader entry point.

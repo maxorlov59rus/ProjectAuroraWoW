@@ -1,4 +1,4 @@
-﻿/*
+/*
  * NpcCustomizer module - implementation
  *
  * Runtime customization of spawned NPCs (name, level, health, faction, flags).
@@ -282,7 +282,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // Static instance - auto-registers via constructor
@@ -304,7 +304,7 @@ public:
     {
         NpcCustomizerManager::Instance().Initialize();
     }
-}
+};
 
 
 // ============================================================================

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ClasslessSystem module - implementation
  *
  * Classless characters: the role comes from spent skill points instead of a
@@ -292,7 +292,7 @@ private:
 
         return true;
     }
-}
+};
 
 // ============================================================================
 // Static instance - auto-registers via constructor
