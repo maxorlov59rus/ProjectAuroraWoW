@@ -72,24 +72,20 @@ namespace Aurora::World
 				return false;
 			}
 
+			uint32 PendingBytes = 0;
 			uint8 Chunk[4096];
 			int32 Read = 0;
 
-			if (!Socket->Recv(Chunk, sizeof(Chunk), Read, true))
-			{
-				if (Socket->GetConnectionState() == SCS_Connected)
-				{
-					FPlatformProcess::Sleep(0.001f);
-					continue;
-				}
-				OutError = TEXT("Connection lost while reading");
-				return false;
-			}
-
-			if (Read <= 0)
+			if (!Socket->HasPendingData(PendingBytes))
 			{
 				FPlatformProcess::Sleep(0.001f);
 				continue;
+			}
+
+			if (!Socket->Recv(Chunk, sizeof(Chunk), Read) || Read <= 0)
+			{
+				OutError = TEXT("Connection lost while reading");
+				return false;
 			}
 
 			InBuffer.Append(Chunk, Read);
@@ -124,7 +120,7 @@ namespace Aurora::World
 
 			if (Stream.TryDecodeServer(InBuffer, Offset, OutPacket, NeedMore))
 			{
-				InBuffer.RemoveAt(0, Offset, EAllowShrinking::No);
+				InBuffer.RemoveAt(0, Offset);
 				return true;
 			}
 

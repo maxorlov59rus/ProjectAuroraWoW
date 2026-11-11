@@ -166,15 +166,6 @@ namespace Aurora::World
 				CryptIn.Process(HeaderDecrypt.GetData() + PlainLen, HeaderLen - PlainLen);
 			}
 
-			// Подписи не расшифровываем, а сравниваем: HMAC считается по
-			// зашифрованным байтам, как их видит сервер.
-			uint8 Digest[20];
-			HmacSha1(
-				DecryptKey.GetData(), DecryptKey.Num(),
-				Cursor, HeaderLen,
-				Digest);
-
-			(void)Digest;
 
 			if (bLargeCandidate)
 			{

@@ -58,43 +58,60 @@ namespace Aurora::World
 		return Crc32Bit(Data, Length);
 	}
 
+	namespace
+	{
+		/**
+		 * Один блок из 20 байт в общей цепочке «key seed».
+		 *
+		 * AzerothCore разбивает session key на две половины по 20 байт и
+		 * считает HMAC-SHA1, добавляя к lastContext исполненный блок:
+		 * copyContext = lastContext ++ block (block = 0, 1, ...).
+		 * Пять таких блоков дают ровно 60 байт ключевого материала.
+		 */
+		void DeriveBlock(const uint8* Seed, int32 SeedLen, uint8 Block, uint8* Out20)
+		{
+			const uint8 Tail = Block;
+			uint8 Buffer[64];
+
+			uint8 HmacKey[64];
+			FMemory::Memzero(HmacKey, sizeof(HmacKey));
+
+			// HMAC ключ = seed(40) | block(1) | нули, как это делает сервер.
+			const int32 CopyLen = FMath::Min(SeedLen, 63);
+			FMemory::Memcpy(HmacKey, Seed, CopyLen);
+			HmacKey[CopyLen] = Tail;
+
+			FSHA1::HMACBuffer(HmacKey, static_cast<uint32>(CopyLen + 1),
+				reinterpret_cast<const uint8*>(""), 0, Out20);
+
+			(void)Buffer;
+		}
+	}
+
 	FSessionKeys DeriveKeys(const TArray<uint8>& SessionKey)
 	{
-		// 60 байт = три 20-байтовых ключа подряд.
-		static const char* Trailing = "trailing";
-		const int32 TrailingLen = 8;
+		FSessionKeys Keys;
+
+		if (SessionKey.Num() < SEED_LENGTH)
+		{
+			return Keys;
+		}
+
+		const uint8* Seed = SessionKey.GetData();
+		const int32 SeedLen = SessionKey.Num();
 
 		uint8 Digest[20];
-		FSHA1::HMACBuffer(
-			SessionKey.GetData(), static_cast<uint32>(SessionKey.Num()),
-			reinterpret_cast<const uint8*>(Trailing), static_cast<uint64>(TrailingLen),
-			Digest);
 
-		FSessionKeys Keys;
+		// Блок 0 -> encryptKey, блок 1 -> decryptKey (байты 20..39).
+		DeriveBlock(Seed, SeedLen, 0, Digest);
 		Keys.EncryptKey.Append(Digest, 20);
 
-		// Второй блок: продолжение «trailing» с последним байтом ключа
-		// сдвинутым на следующий счётчик, как это делает AzerothCore.
-		uint8 Key2[20];
-		FMemory::Memcpy(Key2, SessionKey.GetData(), 20);
-		FMemory::Memcpy(Key2 + 20 - 1, SessionKey.GetData() + 19, 1);
+		DeriveBlock(Seed, SeedLen, 1, Digest);
+		Keys.DecryptKey.Append(Digest, 20);
 
-		uint8 Digest2[20];
-		FSHA1::HMACBuffer(
-			SessionKey.GetData(), static_cast<uint32>(SessionKey.Num()),
-			reinterpret_cast<const uint8*>(Trailing), static_cast<uint64>(TrailingLen),
-			Digest2);
+		DeriveBlock(Seed, SeedLen, 2, Digest);
+		Keys.SeedKey.Append(Digest, 20);
 
-		Keys.DecryptKey.Append(Digest2, 20);
-
-		uint8 Digest3[20];
-		FSHA1::HMACBuffer(
-			SessionKey.GetData(), static_cast<uint32>(SessionKey.Num()),
-			reinterpret_cast<const uint8*>(Trailing), static_cast<uint64>(TrailingLen),
-			Digest3);
-
-		Keys.SeedKey.Append(Digest3, 20);
-		(void)Key2;
 		return Keys;
 	}
 }

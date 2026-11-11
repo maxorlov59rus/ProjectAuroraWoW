@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.8",
 	"Category": "",
-	"Description": "Aurora - UE 5.8 клиент для AzerothCore (WotLK) сервера",
+	"Description": "Aurora - UE 5.8 client for AzerothCore (WotLK) server",
 	"Modules": [
 		{
 			"Name": "AuroraClient",
@@ -15,19 +15,7 @@
 	],
 	"Plugins": [
 		{
-			"Name": "Sockets",
-			"Enabled": true
-		},
-		{
-			"Name": "Networking",
-			"Enabled": true
-		},
-		{
 			"Name": "EnhancedInput",
-			"Enabled": true
-		},
-		{
-			"Name": "UMG",
 			"Enabled": true
 		}
 	]

@@ -11,3 +11,8 @@ Saved/
 *.suo
 *.xcodeproj
 *.xcworkspace
+
+# Generated project files
+*.slnx
+.vsconfig
+*.sln
