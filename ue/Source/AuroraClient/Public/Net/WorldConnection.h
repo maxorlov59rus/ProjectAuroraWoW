@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Net/WorldStream.h"
+#include "Net/CharacterPackets.h"
 
 /**
  * Клиент WorldServer (порт 8085) для 3.3.5a.
@@ -59,6 +60,25 @@ namespace Aurora::World
 
 		/** Читает один пакет сервера. */
 		bool ReceivePacket(FServerPacket& OutPacket, FString& OutError);
+
+		/**
+		 * Запрашивает список персонажей (CMSG_CHAR_ENUM) и ждёт SMSG_CHAR_ENUM.
+		 * Остальные пакеты между ними отбрасываются.
+		 */
+		EWorldResult EnumCharacters(TArray<FCharacterSummary>& OutCharacters, FString& OutError);
+
+		/**
+		 * Входит в мир выбранным персонажем (CMSG_PLAYER_LOGIN) и ждёт
+		 * SMSG_LOGIN_VERIFY_WORLD.
+		 */
+		EWorldResult LoginCharacter(
+			uint64 CharacterGuid,
+			uint32& OutMapId,
+			float& OutX,
+			float& OutY,
+			float& OutZ,
+			float& OutO,
+			FString& OutError);
 
 	private:
 		void* SocketHandle = nullptr;

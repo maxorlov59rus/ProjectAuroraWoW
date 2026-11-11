@@ -1,5 +1,8 @@
 #include "Net/WorldConnection.h"
 
+#include "Net/CharacterPackets.h"
+#include "Net/Opcodes.h"
+
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
@@ -320,5 +323,95 @@ namespace Aurora::World
 		}
 
 		return EWorldResult::Success;
+	}
+	EWorldResult FWorldConnection::EnumCharacters(TArray<FCharacterSummary>& OutCharacters, FString& OutError)
+	{
+		if (!IsConnected())
+		{
+			OutError = TEXT("Not connected");
+			return EWorldResult::ConnectFailed;
+		}
+
+		if (!SendPacket(Opcodes::CMSG_CHAR_ENUM, TArray<uint8>()))
+		{
+			OutError = TEXT("Unable to send CMSG_CHAR_ENUM");
+			return EWorldResult::ConnectFailed;
+		}
+
+		int32 Guard = 0;
+		while (Guard++ < 64)
+		{
+			FServerPacket Packet;
+			if (!ReceivePacket(Packet, OutError))
+			{
+				return EWorldResult::TimedOut;
+			}
+
+			if (Packet.Opcode != Opcodes::SMSG_CHAR_ENUM)
+			{
+				continue;
+			}
+
+			if (!ParseCharEnum(Packet.Body, OutCharacters))
+			{
+				OutError = TEXT("Malformed SMSG_CHAR_ENUM");
+				return EWorldResult::ProtocolError;
+			}
+			return EWorldResult::Success;
+		}
+
+		OutError = TEXT("SMSG_CHAR_ENUM not received");
+		return EWorldResult::ProtocolError;
+	}
+
+	EWorldResult FWorldConnection::LoginCharacter(
+		uint64 CharacterGuid,
+		uint32& OutMapId,
+		float& OutX,
+		float& OutY,
+		float& OutZ,
+		float& OutO,
+		FString& OutError)
+	{
+		if (!IsConnected())
+		{
+			OutError = TEXT("Not connected");
+			return EWorldResult::ConnectFailed;
+		}
+
+		TArray<uint8> Body;
+		Body.SetNumZeroed(8);
+		FMemory::Memcpy(Body.GetData(), &CharacterGuid, 8);
+
+		if (!SendPacket(Opcodes::CMSG_PLAYER_LOGIN, Body))
+		{
+			OutError = TEXT("Unable to send CMSG_PLAYER_LOGIN");
+			return EWorldResult::ConnectFailed;
+		}
+
+		int32 Guard = 0;
+		while (Guard++ < 256)
+		{
+			FServerPacket Packet;
+			if (!ReceivePacket(Packet, OutError))
+			{
+				return EWorldResult::TimedOut;
+			}
+
+			if (Packet.Opcode != Opcodes::SMSG_LOGIN_VERIFY_WORLD)
+			{
+				continue;
+			}
+
+			if (!ParseLoginVerifyWorld(Packet.Body, OutMapId, OutX, OutY, OutZ, OutO))
+			{
+				OutError = TEXT("Malformed SMSG_LOGIN_VERIFY_WORLD");
+				return EWorldResult::ProtocolError;
+			}
+			return EWorldResult::Success;
+		}
+
+		OutError = TEXT("SMSG_LOGIN_VERIFY_WORLD not received");
+		return EWorldResult::ProtocolError;
 	}
 }
