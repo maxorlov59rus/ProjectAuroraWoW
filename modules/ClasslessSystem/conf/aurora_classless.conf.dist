@@ -1,0 +1,38 @@
+# ============================================================================
+# ClasslessSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_classless.conf after worldserver.conf.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
+# ============================================================================
+
+#    Aurora.Classless.Enabled
+#        Enable the classless registry and the .classless commands.
+#        Default:     1
+
+Aurora.Classless.Enabled = 1
+
+#    Aurora.Classless.PointsPerLevel
+#        Skill points a classless character gets for each of its levels; they are
+#        granted when the character is registered. Range 0-10.
+#        Default:     2
+
+Aurora.Classless.PointsPerLevel = 2
+
+#    Aurora.Classless.MaxLevel
+#        Highest level a classless character may be registered with.
+#        Default:     80
+
+Aurora.Classless.MaxLevel = 80
+
+#    Aurora.Classless.MaxSkillPoints
+#        Ceiling for the skill points of one character, 0 = unlimited.
+#        Default:     0
+
+Aurora.Classless.MaxSkillPoints = 0
+
+#    Aurora.Classless.DefaultScript
+#        Lua script recorded for a character created without an explicit one.
+#        Default:     ""
+
+Aurora.Classless.DefaultScript = ""

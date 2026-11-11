@@ -1,0 +1,77 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "aurora-base",
+      "displayName": "Aurora base",
+      "description": "Base configuration for Aurora on this machine",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "AZEROTHCORE_SOURCE_DIR": "${sourceDir}/../../azerothcore-wotlk-master"
+      }
+    },
+    {
+      "name": "windows-ninja",
+      "displayName": "Windows (Ninja)",
+      "description": "Windows + Ninja (recommended for VS 2022 build tools)",
+      "inherits": "aurora-base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-ninja",
+      "displayName": "Linux (Ninja)",
+      "description": "Linux build with Ninja",
+      "inherits": "aurora-base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "vs2022",
+      "displayName": "Windows (Visual Studio 2022)",
+      "description": "Windows + Visual Studio 2022 generator",
+      "inherits": "aurora-base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/vs2022"
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "Windows Release (Visual Studio 2022)",
+      "description": "Windows + VS 2022 + Release build type",
+      "inherits": "vs2022",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-ninja",
+      "configurePreset": "windows-ninja",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "vs2022",
+      "configurePreset": "vs2022",
+      "configuration": "RelWithDebInfo"
+    }
+  ],
+  "testPresets": []
+}

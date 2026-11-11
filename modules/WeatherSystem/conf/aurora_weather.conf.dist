@@ -1,0 +1,39 @@
+# ============================================================================
+# WeatherSystem module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_weather.conf after worldserver.conf.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
+# ============================================================================
+
+#    Aurora.Weather.Enabled
+#        Enable the Aurora weather overrides (.weather commands).
+#        Default:     1
+
+Aurora.Weather.Enabled = 1
+
+#    Aurora.Weather.StormDurationSecs
+#        Storm length used by .weather storm when it is called without one.
+#        Default:     300
+
+Aurora.Weather.StormDurationSecs = 300
+
+#    Aurora.Weather.MaxStormDurationSecs
+#        Longest storm duration accepted, from the config and from the command.
+#        Default:     3600
+
+Aurora.Weather.MaxStormDurationSecs = 3600
+
+#    Aurora.Weather.DefaultWeatherType
+#        Weather type used by .weather set without an explicit type.
+#        3.3.5 ids: 0 fine, 1 rain, 2 snow, 3 blackcloud, 4 rainstorm,
+#        5 thunderstorm, 6 sandstorm, 7 snowstorm, 8 blizzard, 11 heiter.
+#        Default:     5
+
+Aurora.Weather.DefaultWeatherType = 5
+
+#    Aurora.Weather.MaxWeatherType
+#        Highest weather id the module accepts.
+#        Default:     11
+
+Aurora.Weather.MaxWeatherType = 11

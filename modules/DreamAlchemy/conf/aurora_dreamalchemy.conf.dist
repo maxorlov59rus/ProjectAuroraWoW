@@ -1,0 +1,38 @@
+# ============================================================================
+# Dream Alchemy module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_dreamalchemy.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.DreamAlchemy.Enabled
+#        Enable the Dream Alchemy loop (.dream commands and login hook).
+#        Default:     1
+
+Aurora.DreamAlchemy.Enabled = 1
+
+#    Aurora.DreamAlchemy.MinOfflineSecs
+#        Hours of offline time (in seconds) before the rested buff and dream
+#        shard are granted on the next login. 8 hours = 28800.
+#        Default:     28800
+
+Aurora.DreamAlchemy.MinOfflineSecs = 28800
+
+#    Aurora.DreamAlchemy.ShardsForPotion
+#        Dream shards needed to brew a potion of awakening.
+#        Default:     10
+
+Aurora.DreamAlchemy.ShardsForPotion = 10
+
+#    Aurora.DreamAlchemy.RestedBuffSpell
+#        Spell id of the rested buff granted on login. 0 = virtual until the
+#        spell ships.
+#        Default:     0
+
+Aurora.DreamAlchemy.RestedBuffSpell = 0
+
+#    Aurora.DreamAlchemy.AwakeningSpell
+#        Spell id of the potion of awakening. 0 = virtual until the spell ships.
+#        Default:     0
+
+Aurora.DreamAlchemy.AwakeningSpell = 0

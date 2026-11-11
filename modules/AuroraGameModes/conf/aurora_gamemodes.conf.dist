@@ -1,0 +1,26 @@
+# ============================================================================
+# AuroraGameModes module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_gamemodes.conf after worldserver.conf.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
+# ============================================================================
+
+#    Aurora.GameModes.Enabled
+#        Load the Aurora game-mode scenarios at startup.
+#        Default:     1
+
+Aurora.GameModes.Enabled = 1
+
+#    Aurora.GameModes.Allowed
+#        Scenario ids the module accepts. A value outside this list is reported
+#        at startup and the first allowed id is used instead.
+#        Default:     "standard,rest,test"
+
+Aurora.GameModes.Allowed = "standard,rest,test"
+
+#    Aurora.GameModes.Default
+#        Scenario selected at startup; it has to be one of Allowed above.
+#        Default:     "standard"
+
+Aurora.GameModes.Default = "standard"

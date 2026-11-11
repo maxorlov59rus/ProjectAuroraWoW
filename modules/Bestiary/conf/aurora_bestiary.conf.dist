@@ -1,0 +1,26 @@
+# ============================================================================
+# Bestiary module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_bestiary.conf after
+# worldserver.conf. Options are read by the module in WorldScript::OnStartup.
+# ============================================================================
+
+#    Aurora.Bestiary.Enabled
+#        Enable the Chaos Taxidermy collection (.bestiary commands).
+#        Default:     1
+
+Aurora.Bestiary.Enabled = 1
+
+#    Aurora.Bestiary.CardSetSize
+#        Number of snapshots of one creature type that form a complete card set
+#        and produce a trophy.
+#        Default:     10
+
+Aurora.Bestiary.CardSetSize = 10
+
+#    Aurora.Bestiary.MaxTrophies
+#        Number of trophies the collection may hold at once. When the limit is
+#        reached the extra card sets are still recorded but drop the trophy.
+#        Default:     20
+
+Aurora.Bestiary.MaxTrophies = 20

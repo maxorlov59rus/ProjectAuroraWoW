@@ -1,0 +1,27 @@
+# ============================================================================
+# Teleportation module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_teleportation.conf after worldserver.conf.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
+# ============================================================================
+
+#    Aurora.Teleportation.Enabled
+#        Enable the Aurora teleport destinations.
+#        Default:     1
+
+Aurora.Teleportation.Enabled = 1
+
+#    Aurora.Teleportation.LoadDefaults
+#        Register the built-in capital destinations at startup. Disable it when the
+#        destinations come from a database table instead.
+#        Default:     1
+
+Aurora.Teleportation.LoadDefaults = 1
+
+#    Aurora.Teleportation.Capitals
+#        Which of the built-in destinations LoadDefaults registers, by name.
+#        Names are matched case-insensitively; an unknown name is reported at startup.
+#        Default:     "Stormwind,Orgrimmar,Ironforge,Undercity,Thunder Bluff"
+
+Aurora.Teleportation.Capitals = "Stormwind,Orgrimmar,Ironforge,Undercity,Thunder Bluff"

@@ -1,0 +1,20 @@
+# ============================================================================
+# AuroraSkills module configuration
+#
+# Loaded by worldserver from configs/modules/aurora_skills.conf after worldserver.conf.
+# Options are read by the module in WorldScript::OnStartup, so a change needs a
+# restart (or `.reload config` followed by a re-login where the module says so).
+# ============================================================================
+
+#    Aurora.Skills.Enabled
+#        Load the Aurora skill registry at startup.
+#        Default:     1
+
+Aurora.Skills.Enabled = 1
+
+#    Aurora.Skills.LogHooks
+#        Write a line to the module log every time the experience or skill hooks
+#        are called. Useful while the skill rules themselves are still empty.
+#        Default:     0
+
+Aurora.Skills.LogHooks = 0
