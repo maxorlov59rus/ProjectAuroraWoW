@@ -108,10 +108,8 @@ void CampaignOfLightManager::LoadAllFromDb()
 
     m_loaded = true;
     LOG_INFO("CampaignOfLight", "Campaign of Light loaded ({} NPCs, {} quests, {} bosses, {} shops)",
-        static_cast<uint32>(m_npcs.size()),
-        static_cast<uint32>(m_quests.size()),
-        static_cast<uint32>(m_bosses.size()),
-        static_cast<uint32>(m_shops.size()));
+        m_store.NpcCount(), m_store.QuestCount(),
+        m_store.BossCount(), m_store.ShopCount());
 }
 
 // ---------- NPC ----------
@@ -147,7 +145,7 @@ void CampaignOfLightManager::LoadNpcsFromDb()
         npc.isBoss          = fields[10].Get<bool>();
         npc.isVendor        = fields[11].Get<bool>();
 
-        m_npcs[npc.entry] = npc;
+        m_store.PutNpc(npc);
         ++count;
     } while (result->NextRow());
 
@@ -156,58 +154,42 @@ void CampaignOfLightManager::LoadNpcsFromDb()
 
 bool CampaignOfLightManager::AddNpc(CampaignNpc const& npc)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_npcs[npc.entry] = npc;
+    m_store.PutNpc(npc);
     LOG_INFO("CampaignOfLight", "Added NPC {} (entry {})", npc.name, npc.entry);
     return true;
 }
 
 bool CampaignOfLightManager::RemoveNpc(uint32 entry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_npcs.erase(entry) > 0;
+    return m_store.RemoveNpc(entry);
 }
 
-CampaignNpc const* CampaignOfLightManager::GetNpc(uint32 entry) const
+std::optional<CampaignNpc> CampaignOfLightManager::GetNpc(uint32 entry) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_npcs.find(entry);
-    return it != m_npcs.end() ? &it->second : nullptr;
+    return m_store.GetNpc(entry);
 }
 
 std::vector<CampaignNpc> CampaignOfLightManager::GetNpcs() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    std::vector<CampaignNpc> list;
-    list.reserve(m_npcs.size());
-    for (auto const& [_, npc] : m_npcs)
-        list.push_back(npc);
-    return list;
+    return m_store.GetNpcs();
 }
 
 // ---------- Dialogue ----------
 
 bool CampaignOfLightManager::AddDialogue(uint32 npcEntry, DialogueNode const& node)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_dialogues[npcEntry][node.id] = node;
+    m_store.PutDialogue(npcEntry, node);
     LOG_INFO("CampaignOfLight", "Added dialogue node {} for NPC {}", node.id, npcEntry);
     return true;
 }
 
 bool CampaignOfLightManager::ShowDialogue(Player* player, uint32 npcEntry, uint32 nodeId)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    auto npcIt = m_dialogues.find(npcEntry);
-    if (npcIt == m_dialogues.end())
+    auto Node = m_store.GetDialogue(npcEntry, nodeId);
+    if (!Node)
         return false;
 
-    auto nodeIt = npcIt->second.find(nodeId);
-    if (nodeIt == npcIt->second.end())
-        return false;
-
-    DialogueNode const& node = nodeIt->second;
+    DialogueNode const& node = *Node;
     LOG_INFO("CampaignOfLight", "Showing dialogue {} for player {} (NPC {})",
         nodeId, player->GetName(), npcEntry);
 
@@ -247,7 +229,7 @@ void CampaignOfLightManager::LoadQuestsFromDb()
         quest.startNpcEntry = fields[8].Get<uint32>();
         quest.endNpcEntry   = fields[9].Get<uint32>();
 
-        m_quests[quest.questId] = quest;
+        m_store.PutQuest(quest);
         ++count;
     } while (result->NextRow());
 
@@ -256,8 +238,7 @@ void CampaignOfLightManager::LoadQuestsFromDb()
 
 bool CampaignOfLightManager::AddQuest(CampaignQuest const& quest)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_quests[quest.questId] = quest;
+    m_store.PutQuest(quest);
     LOG_INFO("CampaignOfLight", "Added quest {} (ID: {})", quest.title, quest.questId);
     return true;
 }
@@ -282,12 +263,11 @@ bool CampaignOfLightManager::StartQuest(Player* player, uint32 questId)
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_quests.find(questId);
-    if (it == m_quests.end())
+    auto Found = m_store.GetQuest(questId);
+    if (!Found)
         return false;
 
-    CampaignQuest const& quest = it->second;
+    CampaignQuest const& quest = *Found;
 
     LOG_INFO("CampaignOfLight", "Player {} started quest {} (ID: {})",
         player->GetName(), quest.title, questId);
@@ -298,12 +278,11 @@ bool CampaignOfLightManager::StartQuest(Player* player, uint32 questId)
 
 bool CampaignOfLightManager::CompleteQuest(Player* player, uint32 questId)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_quests.find(questId);
-    if (it == m_quests.end())
+    auto Found = m_store.GetQuest(questId);
+    if (!Found)
         return false;
 
-    CampaignQuest const& quest = it->second;
+    CampaignQuest const& quest = *Found;
 
     LOG_INFO("CampaignOfLight", "Player {} completed quest {} (ID: {})",
         player->GetName(), quest.title, questId);
@@ -314,11 +293,9 @@ bool CampaignOfLightManager::CompleteQuest(Player* player, uint32 questId)
     return true;
 }
 
-CampaignQuest const* CampaignOfLightManager::GetQuest(uint32 questId) const
+std::optional<CampaignQuest> CampaignOfLightManager::GetQuest(uint32 questId) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_quests.find(questId);
-    return it != m_quests.end() ? &it->second : nullptr;
+    return m_store.GetQuest(questId);
 }
 
 // ---------- Boss ----------
@@ -355,7 +332,7 @@ void CampaignOfLightManager::LoadBossesFromDb()
         boss.mapId       = fields[11].Get<uint32>();
         boss.respawnTime = fields[12].Get<uint32>();
 
-        m_bosses[boss.entry] = boss;
+        m_store.PutBoss(boss);
         ++count;
     } while (result->NextRow());
 
@@ -364,12 +341,11 @@ void CampaignOfLightManager::LoadBossesFromDb()
 
 bool CampaignOfLightManager::SpawnBoss(uint32 bossEntry, float x, float y, float z, uint32 mapId)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_bosses.find(bossEntry);
-    if (it == m_bosses.end())
+    auto Found = m_store.GetBoss(bossEntry);
+    if (!Found)
         return false;
 
-    CampaignBoss const& boss = it->second;
+    CampaignBoss const& boss = *Found;
     // BossRespawnMultiplier is what the respawn timer will actually be, so the
     // log line reports the scaled value rather than the raw database one.
     LOG_INFO("CampaignOfLight", "Spawning boss {} (entry {}) at ({}, {}, {}) map {}, respawn {} s",
@@ -383,18 +359,12 @@ bool CampaignOfLightManager::SpawnBoss(uint32 bossEntry, float x, float y, float
 
 bool CampaignOfLightManager::RemoveBoss(uint32 bossEntry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_bosses.erase(bossEntry) > 0;
+    return m_store.RemoveBoss(bossEntry);
 }
 
 std::vector<CampaignBoss> CampaignOfLightManager::GetBosses() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    std::vector<CampaignBoss> list;
-    list.reserve(m_bosses.size());
-    for (auto const& [_, boss] : m_bosses)
-        list.push_back(boss);
-    return list;
+    return m_store.GetBosses();
 }
 
 // ---------- Shop ----------
@@ -423,7 +393,7 @@ void CampaignOfLightManager::LoadShopsFromDb()
         shop.discountHorde   = fields[4].Get<float>();
         shop.discountAlliance = fields[5].Get<float>();
 
-        m_shops[shop.vendorEntry] = shop;
+        m_store.PutShop(shop);
         ++count;
     } while (result->NextRow());
 
@@ -432,20 +402,18 @@ void CampaignOfLightManager::LoadShopsFromDb()
 
 bool CampaignOfLightManager::AddShop(CampaignShop const& shop)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_shops[shop.vendorEntry] = shop;
+    m_store.PutShop(shop);
     LOG_INFO("CampaignOfLight", "Added shop {} (vendor {})", shop.name, shop.vendorEntry);
     return true;
 }
 
 bool CampaignOfLightManager::ShowShop(Player* player, uint32 vendorEntry)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_shops.find(vendorEntry);
-    if (it == m_shops.end())
+    auto Found = m_store.GetShop(vendorEntry);
+    if (!Found)
         return false;
 
-    CampaignShop const& shop = it->second;
+    CampaignShop const& shop = *Found;
     LOG_INFO("CampaignOfLight", "Showing shop {} to player {}", shop.name, player->GetName());
 
     // TODO: Actually open vendor window

@@ -3,8 +3,11 @@
 // AzerothCore's integral typedefs (uint8/uint32/...) and DLL export macros.
 #include "Define.h"
 
+#include "CampaignStore.h"
+
 #include <map>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -150,12 +153,10 @@ private:
     CampaignOfLightManager() = default;
     ~CampaignOfLightManager() = default;
 
-    std::map<uint32, CampaignNpc> m_npcs;
-    std::map<uint32, std::map<uint32, DialogueNode>> m_dialogues;
-    std::map<uint32, CampaignQuest> m_quests;
-    std::map<uint32, CampaignBoss> m_bosses;
-    std::map<uint32, CampaignShop> m_shops;
-    mutable std::mutex m_mutex;
+    // Данные кампании живут в CampaignStore: он держит карты, мьютекс и
+    // узкое место загрузки. Менеджер оставляет себе только команды и хуки.
+    Aurora::Campaign::Store m_store;
+
     std::once_flag m_loadFlag;
     bool m_loaded = false;
 
